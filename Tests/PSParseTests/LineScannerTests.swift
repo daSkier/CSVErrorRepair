@@ -45,7 +45,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let firstLineLength = lines.first!.count
 //        print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        scanner.findAndRepairSequentialLinesWithErrors(&lines)
+        scanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
