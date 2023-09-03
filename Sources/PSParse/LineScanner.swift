@@ -19,21 +19,9 @@ struct LineScanner {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
-        print("firstLineColumnCount: \(firstLineColumnCount)")
         var indicesWithIssue = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
-        }
-        var indicesWithIssue2 = [(lineIndex: Int, lineColumnCount: Int, targetColumnCount: Int)]()
-        for line in separatedLines where line.count != firstLineColumnCount {
-            if let issueIndex = separatedLines.firstIndex(of: line) {
-                indicesWithIssue2.append((issueIndex, line.count, firstLineColumnCount))
-            }else{
-                print("failed to find index for line with issue")
-            }
-        }
-        if indicesWithIssue.count != indicesWithIssue2.count {
-            print("indices with issue search versions created different results - check discrepency\n \(indicesWithIssue) \nvs.\n \(indicesWithIssue2)")
         }
         return indicesWithIssue
     }
@@ -43,22 +31,9 @@ struct LineScanner {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
-        print("firstLineColumnCount: \(firstLineColumnCount)")
         var indicesWithIssue = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
-        print("indices: \(separatedLines.indices)")
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
-        }
-        var indicesWithIssue2 = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
-        for line in separatedLines where line.count != firstLineColumnCount {
-            if let issueIndex = separatedLines.firstIndex(of: line) {
-                indicesWithIssue2.append((issueIndex, line.count, firstLineColumnCount))
-            }else{
-                print("failed to find index for line with issue")
-            }
-        }
-        if indicesWithIssue.count != indicesWithIssue2.count {
-            print("indices with issue search versions created different results - check discrepency\n \(indicesWithIssue) \nvs.\n \(indicesWithIssue2)")
         }
         return indicesWithIssue
     }
@@ -102,6 +77,7 @@ struct LineScanner {
 
     func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
         let linesWithErrors = findLinesWithTooFewElements(fromLines: lines)
+        print("lines with errors: \(linesWithErrors.count)")
 //        print("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {
             if currentIndex < linesWithErrors.count - 1 {
