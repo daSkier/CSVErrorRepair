@@ -3,7 +3,7 @@ import RegexBuilder
 import Foundation
 @testable import PSParse
 
-final class PSParseTests: XCTestCase {
+final class PSParseV2Tests: XCTestCase {
 
     let enUSLocale = Locale(languageCode: .english, languageRegion: .unitedStates)
 
@@ -173,38 +173,64 @@ final class PSParseTests: XCTestCase {
         let results3 = oneCharFollowedByNewLine.matches(of: standard1CharRegex)
         print("oneCharFollowedByNewLine: \(results3.map{ $0.output })")
     }
-    func testHeaderLineV1() async throws {
-        let headerRegex = Regex {
-            Anchor.startOfLine
-            OneOrMore {
-                Capture {
-                    .any.subtracting(.anyOf("\t\n"))
-                    Optionally {
-                        "\t"
-                    }
-                }
+    func testStandard1CharGenderCell() async throws {
 
-            }
-            Anchor.endOfLine
-        }
+    }
+    func testCellWithTab() async throws {
+
+    }
+    func testSimpleHeaderLine() async throws {
+
+    }
+    func testHeaderLineV1() async throws {
         let sampleAL1919racHeader = """
         Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
+        """
+        let sampleAL1919resHeader = """
+        Recid	Raceid	Competitorid	Status	Status2	Position	Bib	Fiscode	Competitorname	Nationcode	Timer1	Timer2	Timer3	Timetot	Valid	Racepoints	Cuppoints	Version	Timer1int	Timer2int	Timer3int	Timetotint	Racepointsreceived	Listfispoints	Ptsmax	Lastupdate
 
         """
-        let racHeaderResults = sampleAL1919racHeader.matches(of: headerRegex)
-        print("raceHeader: \(racHeaderResults.map{$0.output})")
-        let matches = try! headerRegex.wholeMatch(in: sampleAL1919racHeader)
-        print("match output \(String(describing: matches?.1))")
+        let sampleAL1919teamHeader = """
+        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
+        """
+        let sampleAL1919ptsHeader = """
+        Recid	Listid	Competitorid	Disciplinecode	Fispoints	Position	Penalty	Active	Avenumresults	Fixedbyfis	Raceid1	Raceid2	Raceid3	Version	Pointspreviouslist	pourcentpreviouslist	Countlistsamestatus	pourcent	Realpoints	blessevalide	Youthpoints	Lastupdate
+        """
+        let sampleAL1919hdrHeader = """
+        Listalid	Listid	Seasoncode	Listnumber	Listname	Speciallist	Printdeadline	Calculationdate	Startracedate	Endracedate	Validfrom	Validto	Published	Version	Lastupdate
+        """
+        let sampleAL1919evtHeader = """
+        Eventid	Seasoncode	Sectorcode	Eventname	Startdate	Enddate	Nationcodeplace	Orgnationcode	Place	Published	OrgaddressL1	OrgaddressL2	OrgaddressL3	OrgaddressL4	Orgtel	Orgmobile	Orgfax	OrgEmail	Orgemailentries	Orgemailaccomodation	Orgemailtransportation	OrgWebsite	Socialmedia	Eventnotes	Languageused	Td1id	Td1name	Td1nation	Td2id	Td2name	Td2nation	Orgfee	Bill	Billdate	Selcat	Seldis	Seldisl	Seldism	Dispdate	Discomment	Version	Nationeventid	Proveventid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Nextracedate	Lastracedate	TDletter	Orgaddressid	Tournament	Parenteventid	Placeid	Lastupdate
+        """
+        let sampleAL1919disHeader = """
+        Recid	Listid	Seasoncode	Disciplinecode	Gender	Xvalue	Yvalue	Zvalue	Minpenalty	Maxpenalty	Fvalue	Maxpoints	Injuryminpen	Injurymaxpen	Injurypercentage	Version	Adder0	Adder1	Adder2	Adder3	Adder4	Adder5	Adder6	Lastupdate
+        """
+        let sampleAL1919comHeader = """
+        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
+        """
+        let sampleAL1919catHeader = """
+        Recid	Listid	Seasoncode	Catcode	Gender	Minfispoints	Maxfispoints	Adder	Version	Lastupdate
+        """
     }
     func testFirstDataLineV1() async throws {
 
     }
     func testFirstTwoLinesV1() async throws {
-        let racFirstTwoLines = """
-        Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
-        95332	42845	2019	5159	0	GS	SAC				L	2018-09-01	2018-09-01	Giant Slalom	El Colorado	CHI	101144	Quiroga Eduardo (ARG)	ARG						N	V										10949/05/13				1	1	267	268		12.04	12.04		0	0	500000				1	0						0	0	0	0		10:15	12:15		15:15	17:15		1									2018-09-02	1	1	0	0	2018-09-06 08:28:03
 
-        """
+    }
+    func testCellWithExtraneousNewLine() async throws {
+        let sampleRacErrorData = """
+96221	44733	2019	6550	0	SL	NJR				L	2019-01-05	2019-01-04	Slalom	Passo Monte Croce Comelico	ITA	111532	Vicenzi Enrico (ITA)	ITA	0					R	V									0	11070/11/13	Replaces: Val di Zoldo			1	1	275	276		45.01	45.01		0	0	500000				1	0						0	0	0	0																	2019-01-06	1	1	0	0	2019-01-21 20:50:15
+        96226	43636	2019	249	0	GS	FIS				M	2019-03-14	2019-03-12	Giant Slalom	Squaw Valley	USA	101182	Perricone Roger (USA)	USA						R	V										11852/11/15.
+            Replaces: Alyeska Resort			1	1	280	281		35.51	35.51		0	0	500000				1	0						0	0	0	0																	2019-03-14	1	1	0	0	2019-03-19 09:08:07
+        96227	43636	2019	5231	0	SL	FIS				L	2019-03-14	2019-03-12	Slalom	Alpine Meadows	USA	100656	Mahre Paul F. (USA)	USA						R	V									0	11852/11/15.
+            Replaces: Alyeska Resort			1	1	280	281		57.98	57.98		0	0	500000				1	0						0	0	0	0																	2019-03-15	1	1	0	0	2019-03-19 09:08:07
+        96228	43636	2019	250	0	SL	FIS				M	2019-03-17	2019-03-12	Slalom	Alpine Meadows	USA	100656	Mahre Paul F. (USA)	USA						R	V									0		Replaces: Alyeska Resort			1	1	280	281		40	40		0	0	500000				1	0						0	0	0	0																	2019-03-17	1	1	0	0	2019-03-19 09:08:07
+        96229	43636	2019	5234	0	GS	FIS				L	2019-03-17	2019-03-12	Giant Slalom	Squaw Valley	USA	101182	Perricone Roger (USA)	USA						R	V									0		Replaces: Alyeska Resort			1	1	280	281		61.32	61.32		0	0	500000				1	0						0	0	0	0																	2019-03-17	1	1	0	0	2019-03-19 09:08:07
+"""
+    }
+    func testItemWithExtraTabV1() async throws {
+
     }
     func testGetLinesV1() async throws {
 
