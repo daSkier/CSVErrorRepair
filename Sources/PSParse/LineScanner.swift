@@ -45,6 +45,7 @@ struct LineScanner {
         }
         print("firstLineColumnCount: \(firstLineColumnCount)")
         var indicesWithIssue = [(lineIndex: Int, lineCount: Int)]()
+        print("indices: \(separatedLines.indices)")
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             indicesWithIssue.append((index, separatedLines[index].count))
         }
@@ -63,6 +64,7 @@ struct LineScanner {
     }
 
     func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int) {
+        print("repairing line with index \(firstLineIndex) and next")
         let firstLineIndices = lines[firstLineIndex].indices
         let secondLineIndices = lines[firstLineIndex + 1].indices
         guard firstLineIndices.isEmpty != true else {
@@ -88,25 +90,20 @@ struct LineScanner {
         lines[firstLineIndex + 1].removeAll()
     }
 
-    func findAndRepairLinesWithErrors(inString inputString: String) -> [[String]] {
-        var lines = getLines(fromString: inputString)
+    func findAndRepairSequentialLinesWithErrors(_ lines: inout [[String]]) {
         let linesWithErrors = findLinesWithErrors(fromLines: lines)
+        print("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {
             if currentIndex < linesWithErrors.count - 1 {
                 let nextElement = linesWithErrors[currentIndex + 1]
                 if currentElement.lineIndex + 1 == nextElement.lineIndex {
                     repairSequentialLines(lines: &lines, firstLineIndex: currentElement.lineIndex)
                 }
-                print("Next element: \(nextElement)")
+//                print("Next element: \(nextElement)")
                 } else {
                     print("No more elements after current")
                 }
         }
         lines.removeAll { $0.count == 0}
-        print("lines after error correction:")
-        for line in lines {
-            print(line)
-        }
-        return lines
     }
 }

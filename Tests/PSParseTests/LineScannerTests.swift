@@ -40,7 +40,18 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrors() throws {
         let scanner = LineScanner()
-        let resultLines = scanner.findAndRepairLinesWithErrors(inString: sampleRacErrorData)
+        var lines = scanner.getLines(fromString: sampleRacErrorData)
+        let initLinesCount = lines.count
+        let firstLineLength = lines.first!.count
+//        print("initial line count: \(lines.count)")
+        print("init lines element counts: \(lines.map{ $0.count })")
+        scanner.findAndRepairSequentialLinesWithErrors(&lines)
+        print("final lines count: \(lines.count)")
+        print("final lines element counts: \(lines.map{ $0.count })")
+        let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
+        XCTAssertTrue(linesWithIncorrectLength.count == 0)
+        XCTAssertNotEqual(initLinesCount, lines.count)
+//        XCTAssertEqual(lines.count, 4)
     }
 
 }
