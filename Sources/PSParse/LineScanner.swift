@@ -26,14 +26,18 @@ struct LineScanner {
         return indicesWithIssue
     }
 
-    func findLinesWithTooFewElements(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
+    func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
         var indicesWithIssue = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
-            indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
+            if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
+//                print("skipping adding a last line becasuse it had one element which was empty")
+            } else {
+                indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
+            }
         }
         return indicesWithIssue
     }
@@ -47,11 +51,11 @@ struct LineScanner {
             let mergeLineIndices = lines[firstLineIndex + linesAhead].indices
 
             guard firstLineIndices.isEmpty != true else {
-                print("firstLineIndices.isEmpty == true in repairLines")
+//                print("firstLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard mergeLineIndices.isEmpty != true else {
-                print("secondLineIndices.isEmpty == true in repairLines")
+//                print("secondLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard let firstLineLastIndex = firstLineIndices.last else {
@@ -64,7 +68,7 @@ struct LineScanner {
             }
             // we subtract 1 from the end because one column will be merged with another
             guard firstLineIndices.count + mergeLineIndices.count - 1 <= targetColumnCount else {
-                print("combining the merge line would make the line too long")
+//                print("combining the merge line would make the line too long")
                 return
             }
 
@@ -76,7 +80,7 @@ struct LineScanner {
     }
 
     func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
-        let linesWithErrors = findLinesWithTooFewElements(fromLines: lines)
+        let linesWithErrors = findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
 //        print("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {
@@ -90,5 +94,31 @@ struct LineScanner {
                 }
         }
         lines.removeAll { $0.count == 0}
+        lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
+    }
+
+    func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
+        let url = URL(fileURLWithPath: filePath)
+
+        do {
+            let data = try Data(contentsOf: url)
+            var resultString: NSString?
+
+            var usedLossyConversion: ObjCBool = false
+
+            let detectedEncoding = NSString.stringEncoding(for: data,
+                                                 encodingOptions: nil,
+                                                 convertedString: &resultString,
+                                                 usedLossyConversion: &usedLossyConversion)
+
+            if usedLossyConversion.boolValue {
+                // If a lossy conversion was used, the exact encoding may not be reliable
+                print("Lossy conversion used")
+            }
+            return String.Encoding(rawValue: detectedEncoding)
+        } catch {
+            print("Error reading the file: \(error)")
+            return nil
+        }
     }
 }
