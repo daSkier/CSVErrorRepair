@@ -19,15 +19,16 @@ let dateWithDashesFormatter = {
     return formatter
 }()
 
-enum FieldTypes {
+enum FieldType: Equatable, Hashable {
     case integer(expectedValue: Int?, expectedLength: Int?)
     case float
-    case string(expectedLength: Int?)
+    case string(expectedLength: Int)
+    case unknownString
     case date
     case dateTime
 }
 
-extension FieldTypes {
+extension FieldType {
     func validate(inputString input: String) -> Bool {
         switch self {
         case .integer(let expectedValue, let expectedLength):
@@ -39,41 +40,23 @@ extension FieldTypes {
                 }
             }else if let expectedLength {
                 if input.count == expectedLength {
-                    if let inputInt = Int(input) {
-                        return true
-                    }else{
-                        return false
-                    }
+                    return Int(input) != nil
                 }else{
                     return false
                 }
             } else {
-                if let inputInt = Int(input) {
-                    return true
-                } else {
-                    return false
-                }
+                return Int(input) != nil
             }
         case .float:
-            if let inputFloat = Float(input) {
-                return true
-            }else{
-                return false
-            }
+            return Float(input) != nil
         case .string(let expectedLength):
             return input.count == expectedLength
+        case .unknownString:
+            return true
         case .date:
-            if let date = dateWithDashesFormatter.date(from: input) {
-                return true
-            }else{
-                return false
-            }
+            return dateWithDashesFormatter.date(from: input) != nil
         case .dateTime:
-            if let date = dateSpaceTimeFormatter.date(from: input) {
-                return true
-            }else{
-                return false
-            }
+            return dateSpaceTimeFormatter.date(from: input) != nil
         }
     }
 }
