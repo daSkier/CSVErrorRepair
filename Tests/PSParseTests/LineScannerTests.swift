@@ -24,6 +24,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     let AL1919racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1919F/AL1919rac.csv"
     let AL919ptsShortFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/AL919pts-short.csv"
     let sampleDataDirPath = "/Users/js/code/PSVapor/PSSampleData/SampleData/"
+    let AL1319EventWithLongLinePath = "Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1319F/AL1319evt.csv"
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -167,4 +168,90 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 //        XCTAssertNotEqual(initLinesCount, lines.count)
     }
 
+    func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
+        let al1319evtHeaders = ["Eventid", "Seasoncode", "Sectorcode", "Eventname", "Startdate", "Enddate", "Nationcodeplace", "Orgnationcode", "Place", "Published", "OrgaddressL1", "OrgaddressL2", "OrgaddressL3", "OrgaddressL4", "Orgtel", "Orgmobile", "Orgfax", "OrgEmail", "Orgemailentries", "Orgemailaccomodation", "Orgemailtransportation", "OrgWebsite", "Socialmedia", "Eventnotes", "Languageused", "Td1id", "Td1name", "Td1nation", "Td2id", "Td2name", "Td2nation", "Orgfee", "Bill", "Billdate", "Selcat", "Seldis", "Seldisl", "Seldism", "Dispdate", "Discomment", "Version", "Nationeventid", "Proveventid", "Mssql7id", "Results", "Pdf", "Topbanner", "Bottombanner", "Toplogo", "Bottomlogo", "Gallery", "Nextracedate", "Lastracedate", "TDletter", "Orgaddressid", "Tournament", "Parenteventid", "Placeid", "Lastupdate"]
+
+        let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
+        let scanner = LineScanner()
+        var lines = scanner.getLines(fromString: fileString)
+        let initLinesCount = lines.count
+        let firstLineLength = lines.first!.count
+        print("file:\n\(fileString)")
+        let lineIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+        if lineIssues.count > 0 {
+            for issueLine in lineIssues {
+                if issueLine.lineCount > issueLine.targetColumnCount {
+                }
+                scanner.repairSequentialLines(lines: &lines,
+                                              firstLineIndex: issueLine.lineIndex,
+                                              targetColumnCount: issueLine.targetColumnCount)
+            }
+            lines.removeAll{ $0.count == 0 }
+            lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
+            let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+            
+        }
+    }
+
 }
+
+let expected1319EventFieldTypes: [FieldType] = [.integer(expectedValue: nil, expectedLength: nil), //Eventid
+                                       .integer(expectedValue: nil, expectedLength: 4), //Seasoncode
+                                       .string(expectedLength: 2), //Sectorcode
+                                       .unknownString, //Eventname
+                                       .date, //Startdate
+                                       .date, //Enddate
+                                       .string(expectedLength: 3), //Nationcodeplace
+                                       .string(expectedLength: 3), // Orgnationcode
+                                       .unknownString, //Place
+                                       .integer(expectedValue: nil, expectedLength: 1), //Published
+                                       .unknownString, //OrgaddressL1
+                                       .unknownString, //OrgaddressL2
+                                       .unknownString, //OrgaddressL3
+                                       .unknownString, //OrgaddressL4
+                                       .unknownString, //Orgtel
+                                       .unknownString, //Orgmobile
+                                       .unknownString, //Orgfax
+                                       .unknownString, //OrgEmail
+                                       .unknownString, //Orgemailentries
+                                       .unknownString, //Orgemailaccomodation
+                                       .unknownString, //Orgemailtransportation
+                                       .unknownString, //OrgWebsite
+                                       .unknownString, //Socialmedia
+                                       .unknownString, //Eventnotes
+                                       .unknownString, //Languageused
+                                       .unknownString, //Td1id
+                                       .unknownString, //Td1name
+                                       .unknownString, //Td1nation
+                                       .unknownString, //Td2id
+                                       .unknownString, //Td2name
+                                       .unknownString, //Td2nation
+                                       .unknownString, //Orgfee
+                                       .unknownString, //Bill
+                                       .unknownString, //Billdate
+                                       .unknownString, //Selcat
+                                       .unknownString, //Seldis
+                                       .unknownString, //Seldisl
+                                       .unknownString, //Seldism
+                                       .unknownString, //Dispdate
+                                       .unknownString, //Discomment
+                                       .integer(expectedValue: nil, expectedLength: 1), //Version,
+                                       .unknownString, //Nationeventid
+                                       .unknownString, //Proveventid
+                                       .unknownString, //Mssql7id
+                                       .integer(expectedValue: nil, expectedLength: 1), //Results
+                                       .integer(expectedValue: nil, expectedLength: 1), //Pdf
+                                       .unknownString, //Topbanner
+                                       .unknownString, //Bottombanner
+                                       .unknownString, //Toplogo
+                                       .unknownString, //Bottomlogo
+                                       .unknownString, //Gallery
+                                       .unknownString, //Nextracedate
+                                       .unknownString, //Lastracedate
+                                       .integer(expectedValue: nil, expectedLength: 1), //TDletter
+                                       .unknownString, //Orgaddressid
+                                       .integer(expectedValue: nil, expectedLength: 1), //Tournament
+                                       .integer(expectedValue: nil, expectedLength: 1), //Parenteventid
+                                       .integer(expectedValue: nil, expectedLength: nil), //Placeid
+                                       .dateTime //Lastupdate
+]

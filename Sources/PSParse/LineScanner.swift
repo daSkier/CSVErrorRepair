@@ -42,6 +42,60 @@ struct LineScanner {
         return indicesWithIssue
     }
 
+    func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType]) {
+        guard expectedFieldTypes.count == targetColumnCount else {
+            print("expectedFieldTypes.count == targetColumnCount in \(#function)")
+            return
+        }
+        let lineIndices = separatedLine.indices
+        var lineOffset = 0
+        var validatedIndicesForward: [Int] = []
+        var lessValidatedIndicesForward: [Int] = []
+        var validatedIndicesBackward: [Int] = []
+        var lessValidatedIndicesBackward: [Int] = []
+        
+        // Check going forward until invalid
+        for index in lineIndices {
+            let expectedFieldType = expectedFieldTypes[index]
+            if expectedFieldType == .unknownString {
+                lessValidatedIndicesForward.append(index)
+            } else if expectedFieldType.validate(inputString: separatedLine[index]) {
+                validatedIndicesForward.append(index)
+                lessValidatedIndicesForward.append(index)
+            }else{
+                break
+            }
+        }
+
+        // Check going backward until invalid
+        let initialReverseIndexOffset = lineIndices.count - targetColumnCount
+        for reverseIndex in lineIndices.reversed() {
+            let expectedFieldType = expectedFieldTypes[reverseIndex-initialReverseIndexOffset]
+            if expectedFieldType == .unknownString {
+                lessValidatedIndicesBackward.append(reverseIndex)
+            } else if expectedFieldType.validate(inputString: separatedLine[reverseIndex]) {
+                lessValidatedIndicesBackward.append(reverseIndex)
+                validatedIndicesBackward.append(reverseIndex)
+            } else {
+                break
+            }
+        }
+
+        guard let lastValidForward = validatedIndicesForward.last,
+              let lastLessValidForward = lessValidatedIndicesForward.last else {
+            print("failed to get one of the lastValid forward items")
+            return
+        }
+        guard let lastValidBackward = validatedIndicesBackward.last,
+              let lastLessValidBackward = lessValidatedIndicesBackward.last else {
+            print("failed to get one of the lastValid backward items")
+            return
+        }
+        print("difference between forward/reverse valid indicies \(lastValidBackward-lastValidForward) (\(lastValidForward) vs. \(lastValidBackward)")
+        print("difference between forward/reverse lessValid indicies \(lastLessValidBackward-lastLessValidForward) (\(lastLessValidForward) vs. \(lastLessValidBackward)")
+
+    }
+
     func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
 //        print("repairing line with index \(firstLineIndex) and next")
         var linesAhead = 0
