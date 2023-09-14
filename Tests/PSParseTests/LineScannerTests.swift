@@ -195,63 +195,64 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
 }
 
-let expected1319EventFieldTypes: [FieldType] = [.integer(expectedValue: nil, expectedLength: nil), //Eventid
-                                       .integer(expectedValue: nil, expectedLength: 4), //Seasoncode
-                                       .string(expectedLength: 2), //Sectorcode
-                                       .unknownString, //Eventname
-                                       .date, //Startdate
-                                       .date, //Enddate
-                                       .string(expectedLength: 3), //Nationcodeplace
-                                       .string(expectedLength: 3), // Orgnationcode
-                                       .unknownString, //Place
-                                       .integer(expectedValue: nil, expectedLength: 1), //Published
-                                       .unknownString, //OrgaddressL1
-                                       .unknownString, //OrgaddressL2
-                                       .unknownString, //OrgaddressL3
-                                       .unknownString, //OrgaddressL4
-                                       .unknownString, //Orgtel
-                                       .unknownString, //Orgmobile
-                                       .unknownString, //Orgfax
-                                       .unknownString, //OrgEmail
-                                       .unknownString, //Orgemailentries
-                                       .unknownString, //Orgemailaccomodation
-                                       .unknownString, //Orgemailtransportation
-                                       .unknownString, //OrgWebsite
-                                       .unknownString, //Socialmedia
-                                       .unknownString, //Eventnotes
-                                       .unknownString, //Languageused
-                                       .unknownString, //Td1id
-                                       .unknownString, //Td1name
-                                       .unknownString, //Td1nation
-                                       .unknownString, //Td2id
-                                       .unknownString, //Td2name
-                                       .unknownString, //Td2nation
-                                       .unknownString, //Orgfee
-                                       .unknownString, //Bill
-                                       .unknownString, //Billdate
-                                       .unknownString, //Selcat
-                                       .unknownString, //Seldis
-                                       .unknownString, //Seldisl
-                                       .unknownString, //Seldism
-                                       .unknownString, //Dispdate
-                                       .unknownString, //Discomment
-                                       .integer(expectedValue: nil, expectedLength: 1), //Version,
-                                       .unknownString, //Nationeventid
-                                       .unknownString, //Proveventid
-                                       .unknownString, //Mssql7id
-                                       .integer(expectedValue: nil, expectedLength: 1), //Results
-                                       .integer(expectedValue: nil, expectedLength: 1), //Pdf
-                                       .unknownString, //Topbanner
-                                       .unknownString, //Bottombanner
-                                       .unknownString, //Toplogo
-                                       .unknownString, //Bottomlogo
-                                       .unknownString, //Gallery
-                                       .unknownString, //Nextracedate
-                                       .unknownString, //Lastracedate
-                                       .integer(expectedValue: nil, expectedLength: 1), //TDletter
-                                       .unknownString, //Orgaddressid
-                                       .integer(expectedValue: nil, expectedLength: 1), //Tournament
-                                       .integer(expectedValue: nil, expectedLength: 1), //Parenteventid
-                                       .integer(expectedValue: nil, expectedLength: nil), //Placeid
-                                       .dateTime //Lastupdate
+let expected1319EventFieldTypes: [FieldType] = [
+    .integer(nullable: false, expectedValue: nil, expectedLength: nil), //Eventid
+    .integer(nullable: false, expectedValue: nil, expectedLength: 4), //Seasoncode
+    .string(expectedLength: 2, startsWith: nil, contains: nil), //Sectorcode
+    .unknownString, //Eventname
+    .date, //Startdate
+    .date, //Enddate
+    .string(expectedLength: 3, startsWith: nil, contains: nil), //Nationcodeplace
+    .string(expectedLength: 3, startsWith: nil, contains: nil), // Orgnationcode
+    .unknownString, //Place
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Published
+    .unknownString, //OrgaddressL1
+    .unknownString, //OrgaddressL2
+    .unknownString, //OrgaddressL3
+    .unknownString, //OrgaddressL4
+    .unknownString, //Orgtel
+    .unknownString, //Orgmobile
+    .unknownString, //Orgfax
+    .string(expectedLength: nil, startsWith: nil, contains: "@"), //OrgEmail
+    .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailentries
+    .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailaccomodation
+    .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailtransportation
+    .unknownString, //OrgWebsite
+    .unknownString, //Socialmedia
+    .unknownString, //Eventnotes
+    .unknownString, //Languageused
+    .unknownString, //Td1id
+    .unknownString, //Td1name
+    .unknownString, //Td1nation
+    .unknownString, //Td2id
+    .unknownString, //Td2name
+    .unknownString, //Td2nation
+    .unknownString, //Orgfee
+    .unknownString, //Bill
+    .unknownString, //Billdate
+    .string(expectedLength: nil, startsWith: "-", contains: nil), //Selcat
+    .string(expectedLength: nil, startsWith: "-", contains: nil), //Seldis
+    .unknownString, //Seldisl
+    .unknownString, //Seldism
+    .unknownString, //Dispdate
+    .unknownString, //Discomment
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Version,
+    .unknownString, //Nationeventid
+    .unknownString, //Proveventid
+    .unknownString, //Mssql7id
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Results
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Pdf
+    .unknownString, //Topbanner
+    .unknownString, //Bottombanner
+    .unknownString, //Toplogo
+    .unknownString, //Bottomlogo
+    .unknownString, //Gallery
+    .unknownString, //Nextracedate
+    .unknownString, //Lastracedate
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //TDletter
+    .unknownString, //Orgaddressid
+    .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Tournament
+    .integer(nullable: true, expectedValue: nil, expectedLength: 1), //Parenteventid
+    .integer(nullable: true, expectedValue: nil, expectedLength: nil), //Placeid
+    .dateTime //Lastupdate
 ]
