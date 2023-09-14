@@ -24,7 +24,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     let AL1919racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1919F/AL1919rac.csv"
     let AL919ptsShortFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/AL919pts-short.csv"
     let sampleDataDirPath = "/Users/js/code/PSVapor/PSSampleData/SampleData/"
-    let AL1319EventWithLongLinePath = "Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1319F/AL1319evt.csv"
+    let AL1319EventWithLongLinePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1319F/AL1319evt.csv"
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
