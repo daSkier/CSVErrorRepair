@@ -183,34 +183,34 @@ final class PSParseV2Tests: XCTestCase {
 
     }
     func testHeaderLineV1() async throws {
-        let sampleAL1919racHeader = """
-        Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
-        """
-        let sampleAL1919resHeader = """
-        Recid	Raceid	Competitorid	Status	Status2	Position	Bib	Fiscode	Competitorname	Nationcode	Timer1	Timer2	Timer3	Timetot	Valid	Racepoints	Cuppoints	Version	Timer1int	Timer2int	Timer3int	Timetotint	Racepointsreceived	Listfispoints	Ptsmax	Lastupdate
-
-        """
-        let sampleAL1919teamHeader = """
-        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
-        """
-        let sampleAL1919ptsHeader = """
-        Recid	Listid	Competitorid	Disciplinecode	Fispoints	Position	Penalty	Active	Avenumresults	Fixedbyfis	Raceid1	Raceid2	Raceid3	Version	Pointspreviouslist	pourcentpreviouslist	Countlistsamestatus	pourcent	Realpoints	blessevalide	Youthpoints	Lastupdate
-        """
-        let sampleAL1919hdrHeader = """
-        Listalid	Listid	Seasoncode	Listnumber	Listname	Speciallist	Printdeadline	Calculationdate	Startracedate	Endracedate	Validfrom	Validto	Published	Version	Lastupdate
-        """
-        let sampleAL1919evtHeader = """
-        Eventid	Seasoncode	Sectorcode	Eventname	Startdate	Enddate	Nationcodeplace	Orgnationcode	Place	Published	OrgaddressL1	OrgaddressL2	OrgaddressL3	OrgaddressL4	Orgtel	Orgmobile	Orgfax	OrgEmail	Orgemailentries	Orgemailaccomodation	Orgemailtransportation	OrgWebsite	Socialmedia	Eventnotes	Languageused	Td1id	Td1name	Td1nation	Td2id	Td2name	Td2nation	Orgfee	Bill	Billdate	Selcat	Seldis	Seldisl	Seldism	Dispdate	Discomment	Version	Nationeventid	Proveventid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Nextracedate	Lastracedate	TDletter	Orgaddressid	Tournament	Parenteventid	Placeid	Lastupdate
-        """
-        let sampleAL1919disHeader = """
-        Recid	Listid	Seasoncode	Disciplinecode	Gender	Xvalue	Yvalue	Zvalue	Minpenalty	Maxpenalty	Fvalue	Maxpoints	Injuryminpen	Injurymaxpen	Injurypercentage	Version	Adder0	Adder1	Adder2	Adder3	Adder4	Adder5	Adder6	Lastupdate
-        """
-        let sampleAL1919comHeader = """
-        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
-        """
-        let sampleAL1919catHeader = """
-        Recid	Listid	Seasoncode	Catcode	Gender	Minfispoints	Maxfispoints	Adder	Version	Lastupdate
-        """
+//        let sampleAL1919racHeader = """
+//        Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
+//        """
+//        let sampleAL1919resHeader = """
+//        Recid	Raceid	Competitorid	Status	Status2	Position	Bib	Fiscode	Competitorname	Nationcode	Timer1	Timer2	Timer3	Timetot	Valid	Racepoints	Cuppoints	Version	Timer1int	Timer2int	Timer3int	Timetotint	Racepointsreceived	Listfispoints	Ptsmax	Lastupdate
+//
+//        """
+//        let sampleAL1919teamHeader = """
+//        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
+//        """
+//        let sampleAL1919ptsHeader = """
+//        Recid	Listid	Competitorid	Disciplinecode	Fispoints	Position	Penalty	Active	Avenumresults	Fixedbyfis	Raceid1	Raceid2	Raceid3	Version	Pointspreviouslist	pourcentpreviouslist	Countlistsamestatus	pourcent	Realpoints	blessevalide	Youthpoints	Lastupdate
+//        """
+//        let sampleAL1919hdrHeader = """
+//        Listalid	Listid	Seasoncode	Listnumber	Listname	Speciallist	Printdeadline	Calculationdate	Startracedate	Endracedate	Validfrom	Validto	Published	Version	Lastupdate
+//        """
+//        let sampleAL1919evtHeader = """
+//        Eventid	Seasoncode	Sectorcode	Eventname	Startdate	Enddate	Nationcodeplace	Orgnationcode	Place	Published	OrgaddressL1	OrgaddressL2	OrgaddressL3	OrgaddressL4	Orgtel	Orgmobile	Orgfax	OrgEmail	Orgemailentries	Orgemailaccomodation	Orgemailtransportation	OrgWebsite	Socialmedia	Eventnotes	Languageused	Td1id	Td1name	Td1nation	Td2id	Td2name	Td2nation	Orgfee	Bill	Billdate	Selcat	Seldis	Seldisl	Seldism	Dispdate	Discomment	Version	Nationeventid	Proveventid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Nextracedate	Lastracedate	TDletter	Orgaddressid	Tournament	Parenteventid	Placeid	Lastupdate
+//        """
+//        let sampleAL1919disHeader = """
+//        Recid	Listid	Seasoncode	Disciplinecode	Gender	Xvalue	Yvalue	Zvalue	Minpenalty	Maxpenalty	Fvalue	Maxpoints	Injuryminpen	Injurymaxpen	Injurypercentage	Version	Adder0	Adder1	Adder2	Adder3	Adder4	Adder5	Adder6	Lastupdate
+//        """
+//        let sampleAL1919comHeader = """
+//        Competitorid	Sectorcode	Fiscode	Lastname	Firstname	Gender	Birthdate	Nationcode	Nationalcode	Skiclub	Association	Status	Status_old
+//        """
+//        let sampleAL1919catHeader = """
+//        Recid	Listid	Seasoncode	Catcode	Gender	Minfispoints	Maxfispoints	Adder	Version	Lastupdate
+//        """
     }
     func testFirstDataLineV1() async throws {
 
