@@ -177,6 +177,10 @@ struct LineScanner {
     }
 }
 
+enum ParseError: Error {
+    case failedToGetLastItemFromValidatedIndicyArray
+}
+
 struct ValidationResultSet {
     var validatedIndicesForward: [Int]
     var invalidIndiciesForward: [Int]
