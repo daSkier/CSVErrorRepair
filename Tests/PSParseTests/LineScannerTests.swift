@@ -104,7 +104,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("csvItems.count: \(csvItems.count)")
 //        print("csvItems:\n\(csvItems)")
         var initialFilesWithIssuesCount = 0
-        var finalFilesWithIssuesCount = 0
         let fileErrors = try csvItems
             .map { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
                 return try autoreleasepool {
@@ -113,10 +112,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                     let linesWithIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         initialFilesWithIssuesCount += 1
-//                        print("\(csvFile) --> \(linesWithIssues)")
                         for issueLine in linesWithIssues {
-                            if issueLine.lineCount > issueLine.targetColumnCount {
-                            }
                             scanner.repairSequentialLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.targetColumnCount)
@@ -125,7 +121,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
                         let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         if linesWithIssuesAfterSequentialLineRepair.count > 0 {
-                            finalFilesWithIssuesCount += 1
                             print("\(csvFile) --> \(linesWithIssuesAfterSequentialLineRepair)")
                         }
                         return (fileUrl: csvFile, issues: linesWithIssuesAfterSequentialLineRepair)
@@ -135,17 +130,21 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                 }
             }
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
+
+        let nonEmptyFileErrorDetails = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
+            return partialResult.append((fileUrl: fileIssues.fileUrl, issueCount: fileIssues.issues.count))
+        }
         let totalLinesWithErrors = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             partialResult.append(contentsOf: fileIssues.issues)
         }
         let linesWithTooManyElements = totalLinesWithErrors.filter { $0.lineCount > $0.targetColumnCount }
         print("files not solved with error correction:")
 //        nonEmptyFileErrors.forEach { print("\($0.fileUrl) -> \($0.issues)") }
-        print("found \(nonEmptyFileErrors.count) files with issues")
         print("found \(totalLinesWithErrors.count) lines with incorrect column counts")
         print("found \(linesWithTooManyElements.count) lines with too many columns")
         print("initialFilesWithIssuesCount: \(initialFilesWithIssuesCount)")
-        print("finalFilesWithIssuesCount: \(finalFilesWithIssuesCount)")
+        print("nonEmptyFileErrors.count: \(nonEmptyFileErrors.count)")
+        print("nonEmptyFileErrorDetails: \(nonEmptyFileErrorDetails)")
 
 
 //        nonEmptyFileErrors.forEach { fileWithIssues in
@@ -169,8 +168,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
-//        let al1319evtHeaders = ["Eventid", "Seasoncode", "Sectorcode", "Eventname", "Startdate", "Enddate", "Nationcodeplace", "Orgnationcode", "Place", "Published", "OrgaddressL1", "OrgaddressL2", "OrgaddressL3", "OrgaddressL4", "Orgtel", "Orgmobile", "Orgfax", "OrgEmail", "Orgemailentries", "Orgemailaccomodation", "Orgemailtransportation", "OrgWebsite", "Socialmedia", "Eventnotes", "Languageused", "Td1id", "Td1name", "Td1nation", "Td2id", "Td2name", "Td2nation", "Orgfee", "Bill", "Billdate", "Selcat", "Seldis", "Seldisl", "Seldism", "Dispdate", "Discomment", "Version", "Nationeventid", "Proveventid", "Mssql7id", "Results", "Pdf", "Topbanner", "Bottombanner", "Toplogo", "Bottomlogo", "Gallery", "Nextracedate", "Lastracedate", "TDletter", "Orgaddressid", "Tournament", "Parenteventid", "Placeid", "Lastupdate"]
-
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
         let scanner = LineScanner()
         var lines = scanner.getLines(fromString: fileString)
