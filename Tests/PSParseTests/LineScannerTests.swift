@@ -26,6 +26,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     let AL919ptsShortFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/AL919pts-short.csv"
     let sampleDataDirPath = "/Users/js/code/PSVapor/PSSampleData/SampleData/"
     let AL1319EventWithLongLinePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1319F/AL1319evt.csv"
+    let fisArchives = "/Users/js/code/PointStalker/FISList Archives by Year"
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -171,7 +172,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let expectedTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
         let scanner = LineScanner()
         let fileManager = FileManager.default
-        let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
+        let directoryUrl = URL(fileURLWithPath: fisArchives, isDirectory: true)
         let enum1 = fileManager.enumerator(at: directoryUrl,
                                            includingPropertiesForKeys: nil,
                                            options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
