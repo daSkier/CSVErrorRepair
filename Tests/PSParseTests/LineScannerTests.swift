@@ -167,6 +167,44 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         }
     }
 
+    func testGetAllHeaders() async throws {
+        let expectedTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
+        let scanner = LineScanner()
+        let fileManager = FileManager.default
+        let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
+        let enum1 = fileManager.enumerator(at: directoryUrl,
+                                           includingPropertiesForKeys: nil,
+                                           options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
+        let items = enum1?.allObjects as! [URL]
+        let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
+        print("csvItems.count: \(csvItems.count)")
+        let filesAndFirstLines = try await csvItems
+            .concurrentMap { csvFile -> (lastPathComponent: String, fileType: String, firstLine: [String]) in
+                return try autoreleasepool {
+                    let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
+                    let lines = scanner.getLines(fromString: fileString)
+                    let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
+                    let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+                    if !expectedTypes.contains(fileFisType) {
+                        print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
+                    }
+                    return (lastPathComponent: lastPathComponent, fileType: fileFisType, firstLine: lines.first!)
+                }
+            }
+        let valuesByFileType = filesAndFirstLines.reduce(into: [String : Set<String>]()) { partialResult, fileInfo in
+            if partialResult.keys.contains(fileInfo.fileType) {
+                partialResult[fileInfo.fileType]?.formUnion(fileInfo.firstLine)
+            }else{
+                partialResult[fileInfo.fileType] = Set(fileInfo.firstLine)
+            }
+        }
+        let valuesByFileTypeFiltered = valuesByFileType.filter { (key, value) -> Bool in
+            return expectedTypes.contains(key)
+        }
+        for (key, value) in valuesByFileTypeFiltered {
+            print("\(key): \(value)")
+        }
+    }
 }
 
 let expected1319EventFieldTypes: [FieldType] = [
