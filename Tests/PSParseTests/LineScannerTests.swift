@@ -115,8 +115,8 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.targetColumnCount)
                         }
-                        lines.removeAll{ $0.count == 0 }
-                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
+                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         if linesWithIssuesAfterSequentialLineRepair.count > 0 {
                             print("\(csvFile) --> \(linesWithIssuesAfterSequentialLineRepair)")
@@ -156,8 +156,8 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                               firstLineIndex: issueLine.lineIndex,
                                               targetColumnCount: issueLine.targetColumnCount)
             }
-            lines.removeAll{ $0.count == 0 }
-            lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
+            lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+            lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
             let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
