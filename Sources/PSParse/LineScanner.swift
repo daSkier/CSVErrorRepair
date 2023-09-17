@@ -44,10 +44,77 @@ struct LineScanner {
     }
 
     func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType]) {
+        print("reviewing line: \(separatedLine)")
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
         }
+
+//        while separatedLine.count != targetColumnCount {
+//            let initialDifference = separatedLine.count - targetColumnCount
+            let fieldCheck = validate(separatedLine: separatedLine,
+                                      againstExpectedFieldTypes: expectedFieldTypes,
+                                      targetColumnCount: targetColumnCount)
+            fieldCheck.printResults()
+            let swagBestIndex = fieldCheck.mergedLastIndices()[1]
+
+            var mergeResults: [(mergeIndex: Int, resultLine: [String], invalidIndicesForward: [Int], invalidIndicesCount: Int)] = []
+
+            for mergeIndex in fieldCheck.mergedLastIndices() {
+                //TODO: is it better to step one cell further forward
+                var mergedLine = separatedLine
+                mergedLine[mergeIndex] = mergedLine[mergeIndex] + mergedLine[mergeIndex+1]
+                mergedLine.remove(at: mergeIndex+1)
+
+                let postMergeValidation = validate(separatedLine: mergedLine,
+                                                   againstExpectedFieldTypes: expectedFieldTypes,
+                                                   targetColumnCount: targetColumnCount)
+                mergeResults.append((mergeIndex: mergeIndex,
+                                     resultLine: mergedLine,
+                                     invalidIndicesForward: postMergeValidation.invalidIndiciesForward,
+                                     invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count
+                                    ))
+
+                postMergeValidation.printResults()
+            }
+            let finalMergeResults = mergeResults.sorted { $0.invalidIndicesCount < $1.invalidIndicesCount }
+            let minErrors = finalMergeResults
+                .min { $0.invalidIndicesCount < $1.invalidIndicesCount }
+                .map { $0.invalidIndicesCount }
+            if let minErrors {
+                let finalMergeResultsWithMinErrors = finalMergeResults.filter { $0.invalidIndicesCount == minErrors }
+                print("finalMergeResults: \(finalMergeResults)")
+
+                let bestMergeIndex: Int = {
+                    let minErrorResults = finalMergeResults.filter { $0.invalidIndicesCount == minErrors }
+                    if minErrorResults.count == 1 {
+                        return minErrorResults.first!.mergeIndex
+                    }else if minErrorResults.count > 1 {
+                        if minErrorResults.contains(where: { $0.mergeIndex == swagBestIndex }) {
+                            print("using swagMergeIndex")
+                            return swagBestIndex
+                        }else{
+                            print("using first minErrorResult as mergeIndex by default")
+                            return minErrorResults.first!.mergeIndex
+                        }
+                    }else {
+                        return 0
+                    }
+                }()
+
+                if bestMergeIndex == 0 {
+                    print("won't merge because bestMergeIndex == 0")
+                }else {
+                    //TODO: is it better to step one cell further forward
+                    separatedLine[bestMergeIndex] = separatedLine[bestMergeIndex] + separatedLine[bestMergeIndex+1]
+                    separatedLine.remove(at: bestMergeIndex+1)
+                }
+            }else{
+                print("failed to get minErrors in \(#function)")
+            }
+//        }
+    }
+
     func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
         let lineIndices = separatedLine.indices
 
@@ -233,5 +300,13 @@ struct ValidationResultSet {
         }else {
             return []
         }
+    }
+
+    func printResults() {
+        print(validForwardBackDifferenceString())
+        print(lessValidForwardBackDifferenceString())
+        print("invalidIndicesForward: \(invalidIndiciesForward)")
+        print("invalidIndicesBackward: \(invalidIndicesBackward)")
+        print("valid indicies array: \(mergedLastIndices())")
     }
 }
