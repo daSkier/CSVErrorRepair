@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import CollectionConcurrencyKit
 @testable import PSParse
 
 final class LineScannerTests: XCTestCase {
@@ -92,7 +93,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         XCTAssertNotEqual(initLinesCount, lines.count)
     }
 
-    func testFindErrorsInDirectory() throws {
+    func testFindErrorsInDirectory() async throws {
         let scanner = LineScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
@@ -103,15 +104,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
         print("csvItems.count: \(csvItems.count)")
 //        print("csvItems:\n\(csvItems)")
-        var initialFilesWithIssuesCount = 0
-        let fileErrors = try csvItems
-            .map { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
+        let fileErrors = try await csvItems
+            .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = scanner.getLines(fromString: fileString)
                     let linesWithIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
-                        initialFilesWithIssuesCount += 1
                         for issueLine in linesWithIssues {
                             scanner.repairSequentialLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
@@ -142,7 +141,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 //        nonEmptyFileErrors.forEach { print("\($0.fileUrl) -> \($0.issues)") }
         print("found \(totalLinesWithErrors.count) lines with incorrect column counts")
         print("found \(linesWithTooManyElements.count) lines with too many columns")
-        print("initialFilesWithIssuesCount: \(initialFilesWithIssuesCount)")
         print("nonEmptyFileErrors.count: \(nonEmptyFileErrors.count)")
         print("nonEmptyFileErrorDetails: \(nonEmptyFileErrorDetails)")
 
