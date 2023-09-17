@@ -146,6 +146,12 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
         let scanner = LineScanner()
         var lines = scanner.getLines(fromString: fileString)
+        let fieldTypes = lines.first!.map { fieldName in
+            guard let type = FieldType.eventFieldNameToTypes[fieldName] else {
+                fatalError("failed to get field type for \(fieldName)")
+            }
+            return type
+        }
         let lineIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
@@ -160,7 +166,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.targetColumnCount,
-                                                                        expectedFieldTypes: expected1319EventFieldTypes)
+                                                                        expectedFieldTypes: fieldTypes)
             }
         }
     }
