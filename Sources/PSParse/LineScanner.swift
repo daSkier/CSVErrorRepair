@@ -82,9 +82,6 @@ struct LineScanner {
                 .min { $0.invalidIndicesCount < $1.invalidIndicesCount }
                 .map { $0.invalidIndicesCount }
             if let minErrors {
-                let finalMergeResultsWithMinErrors = finalMergeResults.filter { $0.invalidIndicesCount == minErrors }
-                print("finalMergeResults: \(finalMergeResults)")
-
                 let bestMergeIndex: Int = {
                     let minErrorResults = finalMergeResults.filter { $0.invalidIndicesCount == minErrors }
                     if minErrorResults.count == 1 {
