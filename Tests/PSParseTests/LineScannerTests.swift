@@ -103,7 +103,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
         print("csvItems.count: \(csvItems.count)")
-//        print("csvItems:\n\(csvItems)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
                 return try autoreleasepool {
@@ -143,44 +142,16 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("found \(linesWithTooManyElements.count) lines with too many columns")
         print("nonEmptyFileErrors.count: \(nonEmptyFileErrors.count)")
         print("nonEmptyFileErrorDetails: \(nonEmptyFileErrorDetails)")
-
-
-//        nonEmptyFileErrors.forEach { fileWithIssues in
-//            print("\(fileWithIssues.fileUrl) --> \(fileWithIssues.issues)")
-//        }
-
-//        let fileString = try String(contentsOfFile: AL919ptsShortFilePath, encoding: .isoLatin1)
-//        let scanner = LineScanner()
-//        var lines = scanner.getLines(fromString: fileString)
-//        let initLinesCount = lines.count
-//        let firstLineLength = lines.first!.count
-//        print("file:\n\(fileString)")
-//        print("initial line count: \(lines.count)")
-//        print("init lines element counts: \(lines.map{ $0.count })")
-//        scanner.findAndRepairLinesWithTooFewElements(&lines)
-//        print("final lines count: \(lines.count)")
-//        print("final lines element counts: \(lines.map{ $0.count })")
-//        let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
-//        XCTAssertTrue(linesWithIncorrectLength.count == 0)
-//        XCTAssertNotEqual(initLinesCount, lines.count)
     }
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
         let scanner = LineScanner()
         var lines = scanner.getLines(fromString: fileString)
-        let initLinesCount = lines.count
-        print("lines count: \(initLinesCount)")
-        let firstLineLength = lines.first!.count
-        print("firstLineLength: \(firstLineLength)")
-        print("first line: \(lines.first!)")
-//        print("file:\n\(fileString)")
         let lineIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
-                if issueLine.lineCount > issueLine.targetColumnCount {
-                }
                 scanner.repairSequentialLines(lines: &lines,
                                               firstLineIndex: issueLine.lineIndex,
                                               targetColumnCount: issueLine.targetColumnCount)
@@ -188,7 +159,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             lines.removeAll{ $0.count == 0 }
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
             let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
-            print("post sequential repair: \(linesWithIssuesAfterSequentialLineRepair)")
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.targetColumnCount,
