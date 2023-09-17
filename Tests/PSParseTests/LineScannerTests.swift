@@ -119,8 +119,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
-                        if linesWithIssuesAfterSequentialLineRepair.count > 0 {
-                            print("\(csvFile) --> \(linesWithIssuesAfterSequentialLineRepair)")
                         }
                         return (fileUrl: csvFile, issues: linesWithIssuesAfterSequentialLineRepair)
                     }else{
@@ -129,7 +127,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                 }
             }
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
-
         let nonEmptyFileErrorDetails = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             return partialResult.append((fileUrl: fileIssues.fileUrl, issueCount: fileIssues.issues.count))
         }
@@ -138,10 +135,10 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         }
         let linesWithTooManyElements = totalLinesWithErrors.filter { $0.lineCount > $0.targetColumnCount }
         print("files not solved with error correction:")
-//        nonEmptyFileErrors.forEach { print("\($0.fileUrl) -> \($0.issues)") }
         print("found \(totalLinesWithErrors.count) lines with incorrect column counts")
         print("found \(linesWithTooManyElements.count) lines with too many columns")
         print("nonEmptyFileErrors.count: \(nonEmptyFileErrors.count)")
+        nonEmptyFileErrors.forEach { print("\($0.fileUrl) -> \($0.issues)") }
         print("nonEmptyFileErrorDetails: \(nonEmptyFileErrorDetails)")
     }
 
