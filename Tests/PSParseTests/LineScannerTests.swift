@@ -169,15 +169,19 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
-        let al1319evtHeaders = ["Eventid", "Seasoncode", "Sectorcode", "Eventname", "Startdate", "Enddate", "Nationcodeplace", "Orgnationcode", "Place", "Published", "OrgaddressL1", "OrgaddressL2", "OrgaddressL3", "OrgaddressL4", "Orgtel", "Orgmobile", "Orgfax", "OrgEmail", "Orgemailentries", "Orgemailaccomodation", "Orgemailtransportation", "OrgWebsite", "Socialmedia", "Eventnotes", "Languageused", "Td1id", "Td1name", "Td1nation", "Td2id", "Td2name", "Td2nation", "Orgfee", "Bill", "Billdate", "Selcat", "Seldis", "Seldisl", "Seldism", "Dispdate", "Discomment", "Version", "Nationeventid", "Proveventid", "Mssql7id", "Results", "Pdf", "Topbanner", "Bottombanner", "Toplogo", "Bottomlogo", "Gallery", "Nextracedate", "Lastracedate", "TDletter", "Orgaddressid", "Tournament", "Parenteventid", "Placeid", "Lastupdate"]
+//        let al1319evtHeaders = ["Eventid", "Seasoncode", "Sectorcode", "Eventname", "Startdate", "Enddate", "Nationcodeplace", "Orgnationcode", "Place", "Published", "OrgaddressL1", "OrgaddressL2", "OrgaddressL3", "OrgaddressL4", "Orgtel", "Orgmobile", "Orgfax", "OrgEmail", "Orgemailentries", "Orgemailaccomodation", "Orgemailtransportation", "OrgWebsite", "Socialmedia", "Eventnotes", "Languageused", "Td1id", "Td1name", "Td1nation", "Td2id", "Td2name", "Td2nation", "Orgfee", "Bill", "Billdate", "Selcat", "Seldis", "Seldisl", "Seldism", "Dispdate", "Discomment", "Version", "Nationeventid", "Proveventid", "Mssql7id", "Results", "Pdf", "Topbanner", "Bottombanner", "Toplogo", "Bottomlogo", "Gallery", "Nextracedate", "Lastracedate", "TDletter", "Orgaddressid", "Tournament", "Parenteventid", "Placeid", "Lastupdate"]
 
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
         let scanner = LineScanner()
         var lines = scanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
+        print("lines count: \(initLinesCount)")
         let firstLineLength = lines.first!.count
-        print("file:\n\(fileString)")
+        print("firstLineLength: \(firstLineLength)")
+        print("first line: \(lines.first!)")
+//        print("file:\n\(fileString)")
         let lineIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+        print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
                 if issueLine.lineCount > issueLine.targetColumnCount {
@@ -189,7 +193,12 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             lines.removeAll{ $0.count == 0 }
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
             let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
-            
+            print("post sequential repair: \(linesWithIssuesAfterSequentialLineRepair)")
+            for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                        targetColumnCount: issueLine.targetColumnCount,
+                                                                        expectedFieldTypes: expected1319EventFieldTypes)
+            }
         }
     }
 
