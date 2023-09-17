@@ -95,6 +95,15 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindErrorsInDirectory() async throws {
+        let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
+        let expectedFisFileHeaderDictionary = ["evt": FieldType.eventFieldNameToTypes,
+                                               "pts": FieldType.pointsFieldNameToTypes,
+                                               "com": FieldType.athleteFieldNameToTypes,
+                                               "rac": FieldType.raceFieldNameToTypes,
+                                               "res": FieldType.raceResultFieldNameToTypes,
+                                               "dis": FieldType.disFieldNameToTypes,
+                                               "hdr": FieldType.hdrFieldNameToTypes,
+                                               "cat": FieldType.catFieldNameToTypes]
         let scanner = LineScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
@@ -103,6 +112,16 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                            options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
+            .filter { csvFile in
+                let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
+                let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+                if !expectedFisFileTypes.contains(fileFisType) {
+                    print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
+                    return false
+                }else{
+                    return true
+                }
+            }
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
@@ -119,7 +138,23 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let fieldTypes = lines.first!.map { fieldName in
+                            let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
+                            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+                            guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
+                                fatalError("failed to get file mapping dict")
+                            }
+                            guard let type = mappingDict[fieldName] else {
+                                fatalError("failed to get field type for \(fieldName)")
+                            }
+                            return type
                         }
+                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                            scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                                    targetColumnCount: issueLine.targetColumnCount,
+                                                                                    expectedFieldTypes: fieldTypes)
+                        }
+                        let linesWithIssuesAfterLongLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         return (fileUrl: csvFile, issues: linesWithIssuesAfterSequentialLineRepair)
                     }else{
                         return (fileUrl: csvFile, issues: linesWithIssues )
