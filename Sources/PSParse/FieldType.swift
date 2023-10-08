@@ -21,10 +21,10 @@ let dateWithDashesFormatter = {
 
 enum FieldType: Equatable, Hashable {
     case integer(nullable: Bool, expectedValue: Int?, expectedLength: Int?)
-    case float
-    case string(expectedLength: Int?, startsWith: String?, contains: String?)
+    case float(nullable: Bool)
+    case string(nullable: Bool, expectedLength: Int?, startsWith: String?, contains: String?)
     case unknownString
-    case date
+    case date(nullable: Bool)
     case dateTime
     case empty
 }
@@ -50,11 +50,25 @@ extension FieldType {
             } else {
                 return Int(input) != nil ? .valid : .invalid
             }
-        case .float:
-            return Float(input) != nil ? .valid : .invalid
-        case .string(let expectedLength, let startsWith, let contains):
-            if let expectedLength {
-                return input.count == expectedLength ? .valid : .invalid
+        case .float(let nullable):
+            if input.isEmpty {
+                return nullable ? .null : .invalid
+            } else {
+                return Float(input) != nil ? .valid : .invalid
+            }
+        case .string(let nullable, let expectedLength, let startsWith, let contains):
+            if input.isEmpty {
+                return nullable ? .null : .invalid
+            }else if let expectedLength {
+                if input.count == expectedLength {
+                    if let startsWith {
+                        return input.hasPrefix(startsWith) ? .valid : .invalid
+                    } else {
+                        return .valid
+                    }
+                } else {
+                    return .invalid
+                }
             }else if let startsWith {
                 if let contains {
                     return input.hasPrefix(startsWith) && input.contains(contains) ? .valid : .invalid
