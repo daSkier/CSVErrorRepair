@@ -289,24 +289,24 @@ extension FieldType {
         "Ptsmax": .integer(nullable: true, expectedValue: nil, expectedLength: nil),
         "Lastupdate": .dateTime
     ]
-    //TODO: make these real
     static let athleteFieldNameToTypes: [String : FieldType] = [
+        "Competitorid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Sectorcode": .string(nullable: false, expectedLength: nil, startsWith: "AL", contains: nil),
+        "Fiscode": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Lastname": .unknownString(nullable: false),
+        "Firstname": .unknownString(nullable: false),
+        "Gender": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
+        "Birthdate": .date(nullable: true),
+        "Nationcode": .unknownString(nullable: false),
         "Nationalcode": .unknownString(nullable: true),
         "Skiclub": .unknownString(nullable: true),
-        "Competitorid": .unknownString(nullable: true),
-        "Status_old": .unknownString(nullable: true),
-        "Lastname": .unknownString(nullable: true),
-        "Gender": .unknownString(nullable: true),
-        "Statusnextlist": .unknownString(nullable: true),
-        "Status": .unknownString(nullable: true),
-        "Gender_2021": .unknownString(nullable: true),
-        "Nationcode": .unknownString(nullable: true),
-        "Fiscode": .unknownString(nullable: true),
-        "Firstname": .unknownString(nullable: true),
-        "Sectorcode": .unknownString(nullable: true),
         "Association": .unknownString(nullable: true),
-        "Birthdate": .unknownString(nullable: true)
+        "Status": .string(nullable: true, expectedLength: 1, startsWith: nil, contains: nil),
+        "Status_old": .string(nullable: true, expectedLength: 1, startsWith: nil, contains: nil),
+        "Statusnextlist": .unknownString(nullable: true),
+        "Gender_2021": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
     ]
+    //TODO: make these real
     static let pointsFieldNameToTypes: [String : FieldType] = [
         "Active": .unknownString(nullable: true),
         "Avenumresults": .unknownString(nullable: true),
