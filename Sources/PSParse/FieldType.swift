@@ -332,19 +332,19 @@ extension FieldType {
         "Youthpoints": .unknownString(nullable: true),
         "Lastupdate": .dateTime,
     ]
-    //TODO: make these real
     static let catFieldNameToTypes: [String : FieldType] = [
-        "Minfispoints": .unknownString(nullable: true),
-        "Gender": .unknownString(nullable: true),
-        "Version": .unknownString(nullable: true),
-        "Adder": .unknownString(nullable: true),
-        "Lastupdate": .unknownString(nullable: true),
-        "Seasoncode": .unknownString(nullable: true),
-        "Listid": .unknownString(nullable: true),
-        "Recid": .unknownString(nullable: true),
-        "Maxfispoints": .unknownString(nullable: true),
-        "Catcode": .unknownString(nullable: true)
+        "Recid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Listid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Seasoncode": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Catcode": .unknownString(nullable: false),
+        "Gender": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
+        "Minfispoints": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Maxfispoints": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Adder": .integer(nullable: true, expectedValue: nil, expectedLength: nil),
+        "Version": .integer(nullable: true, expectedValue: 0, expectedLength: nil),
+        "Lastupdate": .dateTime,
     ]
+    //TODO: make these real
     static let hdrFieldNameToTypes: [String : FieldType] = [
         "Listalid": .unknownString(nullable: true),
         "Speciallist": .unknownString(nullable: true),
