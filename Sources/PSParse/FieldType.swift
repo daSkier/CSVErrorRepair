@@ -344,25 +344,25 @@ extension FieldType {
         "Version": .integer(nullable: true, expectedValue: 0, expectedLength: nil),
         "Lastupdate": .dateTime,
     ]
-    //TODO: make these real
     static let hdrFieldNameToTypes: [String : FieldType] = [
-        "Listalid": .unknownString(nullable: true),
-        "Speciallist": .unknownString(nullable: true),
-        "Listid": .unknownString(nullable: true),
-        "Calculationdate": .unknownString(nullable: true),
-        "Startracedate": .unknownString(nullable: true),
-        "Seasoncode": .unknownString(nullable: true),
-        "Validto": .unknownString(nullable: true),
-        "Listnumber": .unknownString(nullable: true),
-        "Published": .unknownString(nullable: true),
-        "Endracedate": .unknownString(nullable: true),
-        "Lastupdate": .unknownString(nullable: true),
-        "Validfrom": .unknownString(nullable: true),
+        "Recid": .integer(nullable: false, expectedValue: nil, expectedLength: nil), // only for base lists
+        "Listalid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Listid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Seasoncode": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Listnumber": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Listname": .unknownString(nullable: false),
+        "Speciallist": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
         "Printdeadline": .unknownString(nullable: true),
-        "Recid": .unknownString(nullable: true),
-        "Listname": .unknownString(nullable: true),
-        "Version": .unknownString(nullable: true)
+        "Calculationdate": .date(nullable: false),
+        "Startracedate": .date(nullable: false),
+        "Endracedate": .date(nullable: false),
+        "Validfrom": .date(nullable: false),
+        "Validto": .date(nullable: false),
+        "Published": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
+        "Version": .integer(nullable: true, expectedValue: nil, expectedLength: nil),
+        "Lastupdate": .dateTime,
     ]
+    //TODO: make these real
     static let disFieldNameToTypes: [String : FieldType] = [
         "Injurymaxpen": .unknownString(nullable: true),
         "Fvalue": .unknownString(nullable: true),
