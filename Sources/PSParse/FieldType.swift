@@ -101,12 +101,12 @@ extension FieldType {
     static let eventFieldNameToTypes: [String : FieldType] = [
         "Eventid": .integer(nullable: false, expectedValue: nil, expectedLength: nil), //Eventid
         "Seasoncode": .integer(nullable: false, expectedValue: nil, expectedLength: 4), //Seasoncode
-        "Sectorcode": .string(expectedLength: 2, startsWith: nil, contains: nil), //Sectorcode
+        "Sectorcode": .string(nullable: false, expectedLength: 2, startsWith: nil, contains: nil), //Sectorcode
         "Eventname": .unknownString, //Eventname
-        "Startdate": .date, //Startdate
-        "Enddate": .date, //Enddate
-        "Nationcodeplace": .string(expectedLength: 3, startsWith: nil, contains: nil), //Nationcodeplace
-        "Orgnationcode": .string(expectedLength: 3, startsWith: nil, contains: nil), // Orgnationcode
+        "Startdate": .date(nullable: false), //Startdate
+        "Enddate": .date(nullable: false), //Enddate
+        "Nationcodeplace": .string(nullable: false, expectedLength: 3, startsWith: nil, contains: nil), //Nationcodeplace
+        "Orgnationcode": .string(nullable: false, expectedLength: 3, startsWith: nil, contains: nil), // Orgnationcode
         "Place": .unknownString, //Place
         "Published": .integer(nullable: false, expectedValue: nil, expectedLength: 1), //Published
         "OrgaddressL1": .unknownString, //OrgaddressL1
@@ -116,11 +116,11 @@ extension FieldType {
         "Orgtel": .unknownString, //Orgtel
         "Orgmobile": .unknownString, //Orgmobile
         "Orgfax": .unknownString, //Orgfax
-        "OrgEmail": .string(expectedLength: nil, startsWith: nil, contains: "@"), //OrgEmail
-        "OrgEntryEmail": .string(expectedLength: nil, startsWith: nil, contains: "@"),
-        "Orgemailentries": .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailentries
-        "Orgemailaccomodation": .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailaccomodation
-        "Orgemailtransportation": .string(expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailtransportation
+        "OrgEmail": .string(nullable: false, expectedLength: nil, startsWith: nil, contains: "@"), //OrgEmail
+        "OrgEntryEmail": .string(nullable: false, expectedLength: nil, startsWith: nil, contains: "@"),
+        "Orgemailentries": .string(nullable: false, expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailentries
+        "Orgemailaccomodation": .string(nullable: false, expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailaccomodation
+        "Orgemailtransportation": .string(nullable: false, expectedLength: nil, startsWith: nil, contains: "@"), //Orgemailtransportation
         "OrgWebsite": .unknownString, //OrgWebsite
         "Socialmedia": .unknownString, //Socialmedia
         "Eventnotes": .unknownString, //Eventnotes
@@ -134,8 +134,8 @@ extension FieldType {
         "Orgfee": .unknownString, //Orgfee
         "Bill": .unknownString, //Bill
         "Billdate": .unknownString, //Billdate
-        "Selcat": .string(expectedLength: nil, startsWith: "-", contains: nil), //Selcat
-        "Seldis": .string(expectedLength: nil, startsWith: "-", contains: nil), //Seldis
+        "Selcat": .string(nullable: false, expectedLength: nil, startsWith: "-", contains: nil), //Selcat
+        "Seldis": .string(nullable: false, expectedLength: nil, startsWith: "-", contains: nil), //Seldis
         "Seldisl": .unknownString, //Seldisl
         "Seldism": .unknownString, //Seldism
         "Dispdate": .unknownString, //Dispdate
@@ -162,98 +162,99 @@ extension FieldType {
     ]
 
     static let raceFieldNameToTypes: [String : FieldType] = [
-        "Skip_wcsl": .unknownString,
-        "Published": .unknownString,
-        "Passwd": .unknownString,
-        "Homol": .unknownString,
-        "Receiveddate": .unknownString,
-        "Racecodex": .unknownString,
-        "Td2code": .unknownString,
-        "Level": .unknownString,
-        "Hcet1": .unknownString,
-        "Hcet3": .unknownString,
-        "Noepr": .unknownString,
-        "Timinglogo": .unknownString,
-        "Catcode": .unknownString,
-        "Td1id": .unknownString,
-        "Validforfispoints": .unknownString,
-        "Live": .unknownString,
-        "Td2id": .unknownString,
-        "Penscafixed": .unknownString,
-        "Gender_2021": .unknownString,
-        "Catcode4": .unknownString,
-        "Hill": .unknownString,
-        "Special_cup_points": .unknownString,
-        "Livestatus1": .unknownString,
-        "Mssql7id": .unknownString,
-        "Webcomment": .unknownString,
-        "Eventid": .unknownString,
-        "Pursuit": .unknownString,
-        "Appliedpenalty": .unknownString,
-        "Livestatus2": .unknownString,
-        "Disciplineid": .unknownString,
-        "Place": .unknownString,
-        "Appliedscala": .unknownString,
-        "Td1nation": .unknownString,
-        "Provraceid": .unknownString,
-        "Gallery": .unknownString,
-        "Liveinfo2": .unknownString,
-        "Td2nation": .unknownString,
-        "Pdf": .unknownString,
-        "Racedate": .unknownString,
-        "Qualif": .unknownString,
-        "Indi": .unknownString,
-        "Td2name": .unknownString,
-        "Columncount": .unknownString,
-        "Hcet2": .unknownString,
-        "Liveinfo3": .unknownString,
-        "Bottomlogo": .unknownString,
-        "validdate": .unknownString,
-        "Raceid": .unknownString,
-        "Nationraceid": .unknownString,
-        "Tabcount": .unknownString,
-        "Livestatus3": .unknownString,
-        "Team": .unknownString,
-        "Catcode3": .unknownString,
-        "Displaystatus": .unknownString,
-        "Version": .unknownString,
-        "Validdate": .unknownString,
-        "Topbanner": .unknownString,
-        "Timingreport": .unknownString,
-        "Tolist": .unknownString,
-        "Relay": .unknownString,
-        "Discforlistcode": .unknownString,
-        "Hloc2": .unknownString,
-        "Lastupdate": .unknownString,
-        "Catcode2": .unknownString,
-        "Livestatus": .unknownString,
-        "Results": .unknownString,
-        "Hloc1": .unknownString,
-        "Gender": .unknownString,
-        "Msql7evid": .unknownString,
-        "Bottombanner": .unknownString,
-        "Liveinfo1": .unknownString,
-        "Masse": .unknownString,
-        "Liveinfo": .unknownString,
+        "Raceid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Eventid": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Seasoncode": .integer(nullable: false, expectedValue: nil, expectedLength: 4),
+        "Racecodex": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Disciplineid": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
         "Disciplinecode": .unknownString,
-        "Td1code": .unknownString,
-        "Nationcode": .unknownString,
-        "Procstatuscode": .unknownString,
-        "Finale": .unknownString,
-        "Hloc3": .unknownString,
-        "TDdoc": .unknownString,
-        "Style": .unknownString,
+        "Catcode": .unknownString,
+        "Catcode2": .unknownString,
+        "Catcode3": .unknownString,
+        "Catcode4": .unknownString,
+        "Gender": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
+        "Racedate": .date(nullable: false),
+        "Starteventdate": .date(nullable: false),
+        "Description": .unknownString,
+        "Place": .unknownString,
+        "Nationcode": .string(nullable: false, expectedLength: 3, startsWith: nil, contains: nil),
+        "Td1id": .integer(nullable: true, expectedValue: nil, expectedLength: nil),
         "Td1name": .unknownString,
+        "Td1nation": .unknownString,
+        "Td1code": .unknownString,
+        "Td2id": .unknownString,
+        "Td2name": .unknownString,
+        "Td2nation": .unknownString,
+        "Td2code": .unknownString,
+        "Calstatuscode": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil), // could be an enum
+        "Procstatuscode": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil), // could be an enum
+        "Receiveddate": .empty,
+        "Pursuit": .empty,
+        "Masse": .empty,
+        "Relay": .empty,
+        "Distance": .empty,
+        "Hill": .empty,
+        "Style": .unknownString,
+        "Qualif": .empty,
+        "Finale": .unknownString,
+        "Homol": .unknownString,
+        "Webcomment": .unknownString,
+        "Displaystatus": .unknownString,
         "Fisinterncomment": .unknownString,
-        "Distance": .unknownString,
+        "Published": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
+        "Validforfispoints": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
         "Usedfislist": .unknownString,
-        "Calstatuscode": .unknownString,
+        "Tolist": .unknownString,
+        "Discforlistcode": .empty,
+        "Calculatedpenalty": .float(nullable: true),
+        "Appliedpenalty": .float(nullable: true),
+        "Appliedscala": .empty,
+        "Penscafixed": .integer(nullable: true, expectedValue: 0, expectedLength: nil),
+        "Version": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Nationraceid": .unknownString,
+        "Provraceid": .empty,
+        "Msql7evid": .empty,
+        "Mssql7id": .empty,
+        "Results": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
+        "Pdf": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
+        "Topbanner": .unknownString,
+        "Bottombanner": .unknownString,
         "Toplogo": .unknownString,
-        "Calculatedpenalty": .unknownString,
-        "Seasoncode": .unknownString,
-        "Starteventdate": .unknownString,
-        "Description": .unknownString
+        "Bottomlogo": .unknownString,
+        "Gallery": .unknownString,
+        "Indi": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Team": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Tabcount": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Columncount": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Level": .unknownString,
+        "Hloc1": .unknownString,
+        "Hloc2": .unknownString,
+        "Hloc3": .unknownString,
+        "Hcet1": .unknownString,
+        "Hcet2": .unknownString,
+        "Hcet3": .unknownString,
+        "Live": .integer(nullable: true, expectedValue: nil, expectedLength: 1),
+        "Livestatus": .unknownString,
+        "Livestatus1": .unknownString,
+        "Livestatus2": .unknownString,
+        "Livestatus3": .unknownString,
+        "Liveinfo": .unknownString,
+        "Liveinfo1": .unknownString,
+        "Liveinfo2": .unknownString,
+        "Liveinfo3": .unknownString,
+        "Passwd": .unknownString,
+        "Timinglogo": .unknownString,
+        "validdate": .date(nullable: true),
+        "Validdate": .date(nullable: true),
+        "Noepr": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "TDdoc": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
+        "Timingreport": .integer(nullable: false, expectedValue: nil, expectedLength: 1),
+        "Special_cup_points": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        "Skip_wcsl": .integer(nullable: false, expectedValue: 0, expectedLength: nil),
+        "Lastupdate": .dateTime,
+        "Gender_2021": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
     ]
+    //TODO: make these real
     static let raceResultFieldNameToTypes: [String : FieldType] = [
         "Timer3int": .unknownString,
         "Ptsmax": .unknownString,
