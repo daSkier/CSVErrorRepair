@@ -26,6 +26,7 @@ enum FieldType: Equatable, Hashable {
     case unknownString
     case date
     case dateTime
+    case empty
 }
 
 extension FieldType {
@@ -76,6 +77,8 @@ extension FieldType {
             return dateWithDashesFormatter.date(from: input) != nil ? .valid : .invalid
         case .dateTime:
             return dateSpaceTimeFormatter.date(from: input) != nil ? .valid : .invalid
+        case .empty:
+            return input.isEmpty ? .valid : .invalid
         }
     }
 }
