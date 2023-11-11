@@ -232,7 +232,7 @@ struct CSVErrorScanner {
         lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
     }
 
-    func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
+    static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
         let url = URL(fileURLWithPath: filePath)
 
         do {
