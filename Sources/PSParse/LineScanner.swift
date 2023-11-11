@@ -200,7 +200,9 @@ struct LineScanner {
             }
             // we subtract 1 from the end because one column will be merged with another
             guard firstLineIndices.count + mergeLineIndices.count - 1 <= (targetColumnCount+1) else {
-                print("combining the merge line would make the line too long (\(firstLineIndices.count + mergeLineIndices.count - 1) vs. \(targetColumnCount) - firstLine: \(lines[firstLineIndex]) secondLine: \(lines[firstLineIndex + linesAhead])")
+                if firstLineIndices.count + mergeLineIndices.count - 1 < (targetColumnCount*2-1) {
+                    print("combining the merge line would fall into warning range - too long (\(firstLineIndices.count + mergeLineIndices.count - 1) vs. \(targetColumnCount) - firstLine: \(lines[firstLineIndex]) secondLine: \(lines[firstLineIndex + linesAhead])")
+                }
                 return
             }
 

@@ -173,7 +173,9 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                                                     lineNumber: issueLine.lineIndex)
                         }
                         let linesWithIssuesAfterLongLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
-                        print(linesWithIssuesAfterLongLineRepair)
+                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
+                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
+                        }
                         return (fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
                     }else{
                         return (fileUrl: csvFile, issues: linesWithIssues )
