@@ -43,8 +43,8 @@ struct LineScanner {
         return indicesWithIssue
     }
 
-    func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType]) {
-        print("reviewing line: \(separatedLine)")
+    func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
+//        print("reviewing line: \(separatedLine)")
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
@@ -109,7 +109,9 @@ struct LineScanner {
             }else{
                 print("failed to get minErrors in \(#function)")
             }
-//        }
+        } catch {
+            print("error repairing line (\(error)) line \(fileName):\(lineNumber): \(separatedLine)")
+        }
     }
 
     func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {

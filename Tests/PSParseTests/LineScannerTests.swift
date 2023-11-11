@@ -170,7 +170,9 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
                             scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.targetColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes)
+                                                                                    expectedFieldTypes: fieldTypes,
+                                                                                    fileName: csvFile.lastPathComponent,
+                                                                                    lineNumber: issueLine.lineIndex)
                         }
                         let linesWithIssuesAfterLongLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         return (fileUrl: csvFile, issues: linesWithIssuesAfterSequentialLineRepair)
@@ -219,7 +221,9 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.targetColumnCount,
-                                                                        expectedFieldTypes: fieldTypes)
+                                                                        expectedFieldTypes: fieldTypes,
+                                                                        fileName: "AL1319evt.csv",
+                                                                        lineNumber: issueLine.lineIndex)
             }
         }
     }
