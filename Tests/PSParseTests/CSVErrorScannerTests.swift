@@ -117,7 +117,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                "dis": FieldType.disFieldNameToTypes,
                                                "hdr": FieldType.hdrFieldNameToTypes,
                                                "cat": FieldType.catFieldNameToTypes]
-        let scanner = CSVErrorScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
         let enum1 = fileManager.enumerator(at: directoryUrl,
@@ -195,7 +194,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
-        let scanner = CSVErrorScanner()
         var lines = CSVErrorScanner.getLines(fromString: fileString)
         let fieldTypes = lines.first!.map { fieldName in
             guard let type = FieldType.eventFieldNameToTypes[fieldName] else {
