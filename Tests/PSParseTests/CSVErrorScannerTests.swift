@@ -147,7 +147,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                     let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
-                            scanner.repairSequentialLines(lines: &lines,
+                            CSVErrorScanner.repairSequentialLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.targetColumnCount)
                         }
@@ -211,7 +211,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
-                scanner.repairSequentialLines(lines: &lines,
+                CSVErrorScanner.repairSequentialLines(lines: &lines,
                                               firstLineIndex: issueLine.lineIndex,
                                               targetColumnCount: issueLine.targetColumnCount)
             }

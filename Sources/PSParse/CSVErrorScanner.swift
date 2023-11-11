@@ -174,7 +174,7 @@ struct CSVErrorScanner {
         return result
     }
 
-    func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
+    static func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
 //        print("repairing line with index \(firstLineIndex) and next")
         var linesAhead = 0
         repeat {
@@ -222,7 +222,7 @@ struct CSVErrorScanner {
             if currentIndex < linesWithErrors.count - 1 {
                 let nextElement = linesWithErrors[currentIndex + 1]
                 if currentElement.lineIndex + 1 == nextElement.lineIndex {
-                    repairSequentialLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.targetColumnCount)
+                    Self.repairSequentialLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.targetColumnCount)
                 }
             } else {
                 print("No more elements after current")
