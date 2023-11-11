@@ -49,18 +49,17 @@ struct LineScanner {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
         }
-
-//        while separatedLine.count != targetColumnCount {
-//            let initialDifference = separatedLine.count - targetColumnCount
             let fieldCheck = validate(separatedLine: separatedLine,
                                       againstExpectedFieldTypes: expectedFieldTypes,
                                       targetColumnCount: targetColumnCount)
-            fieldCheck.printResults()
-            let swagBestIndex = fieldCheck.mergedLastIndices()[1]
 
+        do {
+            let lastIndicies = try fieldCheck.mergedLastIndices()
+            let swagBestIndex = lastIndicies[1]
+            
             var mergeResults: [(mergeIndex: Int, resultLine: [String], invalidIndicesForward: [Int], invalidIndicesCount: Int)] = []
 
-            for mergeIndex in fieldCheck.mergedLastIndices() {
+            for mergeIndex in lastIndicies {
                 //TODO: is it better to step one cell further forward
                 var mergedLine = separatedLine
                 mergedLine[mergeIndex] = mergedLine[mergeIndex] + mergedLine[mergeIndex+1]
@@ -75,7 +74,7 @@ struct LineScanner {
                                      invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count
                                     ))
 
-                postMergeValidation.printResults()
+//                postMergeValidation.printResults()
             }
             let finalMergeResults = mergeResults.sorted { $0.invalidIndicesCount < $1.invalidIndicesCount }
             let minErrors = finalMergeResults
@@ -288,7 +287,7 @@ struct ValidationResultSet {
         }
     }
 
-    func mergedLastIndices() -> [Int] {
+    func mergedLastIndices() throws -> [Int] {
         if let lastValidForward, let lastValidBackward, let lastLessValidForward, let lastLessValidBackward {
             return [
                 lastValidForward,
@@ -297,7 +296,8 @@ struct ValidationResultSet {
                 lastLessValidBackward
             ].sorted()
         }else {
-            return []
+            print("failed to get mergedLastIndicies - lastValidForward: \(String(describing: lastValidForward)) / lastValidBackward: \(String(describing: lastValidBackward)) / lastLessValidForward: \(String(describing: lastLessValidForward)) / lastLessValidBackward: \(String(describing: lastLessValidBackward))")
+            throw ValidationResultSetError.oneLastIndicyNil
         }
     }
 
@@ -306,6 +306,9 @@ struct ValidationResultSet {
         print(lessValidForwardBackDifferenceString())
         print("invalidIndicesForward: \(invalidIndiciesForward)")
         print("invalidIndicesBackward: \(invalidIndicesBackward)")
-        print("valid indicies array: \(mergedLastIndices())")
+        print("valid indicies array: \(String(describing: try? mergedLastIndices()))")
+    }
+    enum ValidationResultSetError: Error {
+        case oneLastIndicyNil
     }
 }
