@@ -214,7 +214,7 @@ struct CSVErrorScanner {
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
-    func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
+    static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
         let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
         print("lines with errors: \(linesWithErrors)")

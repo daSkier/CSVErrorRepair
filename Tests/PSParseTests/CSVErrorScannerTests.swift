@@ -45,13 +45,12 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindAndRepairLinesWithErrors() throws {
-        let scanner = CSVErrorScanner()
         var lines = CSVErrorScanner.getLines(fromString: sampleRacErrorData)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
 //        print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        scanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
@@ -62,14 +61,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1919raceFile() throws {
         let fileString = try String(contentsOfFile: AL1919racFilePath, encoding: .isoLatin1)
-        let scanner = CSVErrorScanner()
         var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        scanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
@@ -79,14 +77,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1014raceFile() throws {
         let fileString = try String(contentsOfFile: AL1014racFilePath, encoding: .isoLatin1)
-        let scanner = CSVErrorScanner()
         var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
 //        print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        scanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count < firstLineLength }
@@ -96,14 +93,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull919ptsShortFile() throws {
         let fileString = try String(contentsOfFile: AL919ptsShortFilePath, encoding: .isoLatin1)
-        let scanner = CSVErrorScanner()
         var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        scanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
