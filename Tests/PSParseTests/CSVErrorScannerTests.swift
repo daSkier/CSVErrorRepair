@@ -9,7 +9,7 @@ import XCTest
 import CollectionConcurrencyKit
 @testable import PSParse
 
-final class LineScannerTests: XCTestCase {
+final class CSVErrorScannerTests: XCTestCase {
 
     let sampleRacErrorData = """
 Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
@@ -38,7 +38,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindLinesWithErrors() throws {
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         let errorLines = scanner.findLinesWithErrors(fromString: sampleRacErrorData)
         XCTAssertEqual(errorLines.count, 4)
         XCTAssertEqual(errorLines.map{ $0.lineIndex }, [3,4,5,6])
@@ -46,7 +46,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindAndRepairLinesWithErrors() throws {
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         var lines = scanner.getLines(fromString: sampleRacErrorData)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
@@ -63,7 +63,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1919raceFile() throws {
         let fileString = try String(contentsOfFile: AL1919racFilePath, encoding: .isoLatin1)
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         var lines = scanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
@@ -80,7 +80,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1014raceFile() throws {
         let fileString = try String(contentsOfFile: AL1014racFilePath, encoding: .isoLatin1)
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         var lines = scanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
@@ -97,7 +97,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull919ptsShortFile() throws {
         let fileString = try String(contentsOfFile: AL919ptsShortFilePath, encoding: .isoLatin1)
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         var lines = scanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
@@ -122,7 +122,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                "dis": FieldType.disFieldNameToTypes,
                                                "hdr": FieldType.hdrFieldNameToTypes,
                                                "cat": FieldType.catFieldNameToTypes]
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
         let enum1 = fileManager.enumerator(at: directoryUrl,
@@ -200,7 +200,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         var lines = scanner.getLines(fromString: fileString)
         let fieldTypes = lines.first!.map { fieldName in
             guard let type = FieldType.eventFieldNameToTypes[fieldName] else {
@@ -231,7 +231,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testGetAllHeaders() async throws {
         let expectedTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let scanner = LineScanner()
+        let scanner = CSVErrorScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: fisArchives, isDirectory: true)
         let enum1 = fileManager.enumerator(at: directoryUrl,

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct LineScanner {
+struct CSVErrorScanner {
     func getLines(fromString inputString: String) -> [[String]] {
         inputString.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .newlines) }
