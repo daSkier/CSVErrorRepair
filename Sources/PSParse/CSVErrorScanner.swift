@@ -49,7 +49,7 @@ struct CSVErrorScanner {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
         }
-            let fieldCheck = validate(separatedLine: separatedLine,
+        let fieldCheck = Self.validate(separatedLine: separatedLine,
                                       againstExpectedFieldTypes: expectedFieldTypes,
                                       targetColumnCount: targetColumnCount)
 
@@ -65,7 +65,7 @@ struct CSVErrorScanner {
                 mergedLine[mergeIndex] = mergedLine[mergeIndex] + mergedLine[mergeIndex+1]
                 mergedLine.remove(at: mergeIndex+1)
 
-                let postMergeValidation = validate(separatedLine: mergedLine,
+                let postMergeValidation = Self.validate(separatedLine: mergedLine,
                                                    againstExpectedFieldTypes: expectedFieldTypes,
                                                    targetColumnCount: targetColumnCount)
                 mergeResults.append((mergeIndex: mergeIndex,
@@ -113,7 +113,7 @@ struct CSVErrorScanner {
         }
     }
 
-    func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
+    static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
         let lineIndices = separatedLine.indices
 
         var result = ValidationResultSet(validatedIndicesForward: [],
