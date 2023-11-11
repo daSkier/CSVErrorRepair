@@ -22,6 +22,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 96228	43636	2019	250	0	SL	FIS				M	2019-03-17	2019-03-12	Slalom	Alpine Meadows	USA	100656	Mahre Paul F. (USA)	USA						R	V									0		Replaces: Alyeska Resort			1	1	280	281		40	40		0	0	500000				1	0						0	0	0	0																	2019-03-17	1	1	0	0	2019-03-19 09:08:07
 96229	43636	2019	5234	0	GS	FIS				L	2019-03-17	2019-03-12	Giant Slalom	Squaw Valley	USA	101182	Perricone Roger (USA)	USA						R	V									0		Replaces: Alyeska Resort			1	1	280	281		61.32	61.32		0	0	500000				1	0						0	0	0	0																	2019-03-17	1	1	0	0	2019-03-19 09:08:07
 """
+    let AL1014racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/PointsListArchives/ALFP1014F/AL1014rac.csv"
     let AL1919racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1919F/AL1919rac.csv"
     let AL919ptsShortFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/AL919pts-short.csv"
     let sampleDataDirPath = "/Users/js/code/PSVapor/PSSampleData/SampleData/"
@@ -73,6 +74,23 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
+        XCTAssertTrue(linesWithIncorrectLength.count == 0)
+        XCTAssertNotEqual(initLinesCount, lines.count)
+    }
+
+    func testFindAndRepairLinesWithErrorsForFull1014raceFile() throws {
+        let fileString = try String(contentsOfFile: AL1014racFilePath, encoding: .isoLatin1)
+        let scanner = LineScanner()
+        var lines = scanner.getLines(fromString: fileString)
+        let initLinesCount = lines.count
+        let firstLineLength = lines.first!.count
+//        print("file:\n\(fileString)")
+        print("initial line count: \(lines.count)")
+        print("init lines element counts: \(lines.map{ $0.count })")
+        scanner.findAndRepairLinesWithTooFewElements(&lines)
+        print("final lines count: \(lines.count)")
+        print("final lines element counts: \(lines.map{ $0.count })")
+        let linesWithIncorrectLength = lines.filter { $0.count < firstLineLength }
         XCTAssertTrue(linesWithIncorrectLength.count == 0)
         XCTAssertNotEqual(initLinesCount, lines.count)
     }
