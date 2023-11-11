@@ -38,8 +38,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindLinesWithErrors() throws {
-        let scanner = CSVErrorScanner()
-        let errorLines = scanner.findLinesWithErrors(fromString: sampleRacErrorData)
+        let errorLines = CSVErrorScanner.findLinesWithErrors(fromString: sampleRacErrorData)
         XCTAssertEqual(errorLines.count, 4)
         XCTAssertEqual(errorLines.map{ $0.lineIndex }, [3,4,5,6])
         print("error lines: \(errorLines)")

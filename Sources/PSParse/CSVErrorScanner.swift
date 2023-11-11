@@ -14,7 +14,7 @@ struct CSVErrorScanner {
             .map { $0.components(separatedBy: "\t") }
     }
 
-    func findLinesWithErrors(fromString inputString: String) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
+    static func findLinesWithErrors(fromString inputString: String) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
         let separatedLines = CSVErrorScanner.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
