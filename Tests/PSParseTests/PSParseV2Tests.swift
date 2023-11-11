@@ -219,7 +219,7 @@ final class PSParseV2Tests: XCTestCase {
 
     }
     func testCellWithExtraneousNewLine() async throws {
-        let sampleRacErrorData = """
+        let _ = """
 96221	44733	2019	6550	0	SL	NJR				L	2019-01-05	2019-01-04	Slalom	Passo Monte Croce Comelico	ITA	111532	Vicenzi Enrico (ITA)	ITA	0					R	V									0	11070/11/13	Replaces: Val di Zoldo			1	1	275	276		45.01	45.01		0	0	500000				1	0						0	0	0	0																	2019-01-06	1	1	0	0	2019-01-21 20:50:15
         96226	43636	2019	249	0	GS	FIS				M	2019-03-14	2019-03-12	Giant Slalom	Squaw Valley	USA	101182	Perricone Roger (USA)	USA						R	V										11852/11/15.
             Replaces: Alyeska Resort			1	1	280	281		35.51	35.51		0	0	500000				1	0						0	0	0	0																	2019-03-14	1	1	0	0	2019-03-19 09:08:07
