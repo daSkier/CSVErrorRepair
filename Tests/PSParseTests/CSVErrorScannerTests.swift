@@ -108,74 +108,8 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindErrorsInDirectory() async throws {
-        let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let expectedFisFileHeaderDictionary = ["evt": FieldType.eventFieldNameToTypes,
-                                               "pts": FieldType.pointsFieldNameToTypes,
-                                               "com": FieldType.athleteFieldNameToTypes,
-                                               "rac": FieldType.raceFieldNameToTypes,
-                                               "res": FieldType.raceResultFieldNameToTypes,
-                                               "dis": FieldType.disFieldNameToTypes,
-                                               "hdr": FieldType.hdrFieldNameToTypes,
-                                               "cat": FieldType.catFieldNameToTypes]
-        let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
-        let enum1 = fileManager.enumerator(at: directoryUrl,
-                                           includingPropertiesForKeys: nil,
-                                           options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
-        let items = enum1?.allObjects as! [URL]
-        let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
-            .filter { csvFile in
-                let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                if !expectedFisFileTypes.contains(fileFisType) {
-                    print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
-                    return false
-                }else{
-                    return true
-                }
-            }
-        print("csvItems.count: \(csvItems.count)")
-        let fileErrors = try await csvItems
-            .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]) in
-                return try autoreleasepool {
-                    let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
-                    var lines = CSVErrorScanner.getLines(fromString: fileString)
-                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
-                    if linesWithIssues.count > 0 {
-                        for issueLine in linesWithIssues {
-                            CSVErrorScanner.repairSequentialLines(lines: &lines,
-                                                          firstLineIndex: issueLine.lineIndex,
-                                                          targetColumnCount: issueLine.targetColumnCount)
-                        }
-                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
-                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
-                        let fieldTypes = lines.first!.map { fieldName in
-                            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                            guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
-                                fatalError("failed to get file mapping dict")
-                            }
-                            guard let type = mappingDict[fieldName] else {
-                                fatalError("failed to get field type for \(fieldName)")
-                            }
-                            return type
-                        }
-                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.targetColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes,
-                                                                                    fileName: csvFile.lastPathComponent,
-                                                                                    lineNumber: issueLine.lineIndex)
-                        }
-                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
-                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
-                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
-                        }
-                        return (fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
-                    }else{
-                        return (fileUrl: csvFile, issues: linesWithIssues )
-                    }
-                }
-            }
+        let fileErrors = try await CSVErrorScanner.correctErrorsIn(directory: directoryUrl)
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
         let nonEmptyFileErrorDetails = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             return partialResult.append((fileUrl: fileIssues.fileUrl, issueCount: fileIssues.issues.count))
