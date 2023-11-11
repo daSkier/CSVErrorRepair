@@ -15,7 +15,7 @@ struct CSVErrorScanner {
     }
 
     static func findLinesWithErrors(fromString inputString: String) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
-        let separatedLines = CSVErrorScanner.getLines(fromString: inputString)
+        let separatedLines = Self.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
@@ -27,7 +27,7 @@ struct CSVErrorScanner {
         return indicesWithIssue
     }
 
-    func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)] {
+    static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
@@ -215,7 +215,7 @@ struct CSVErrorScanner {
     }
 
     func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
-        let linesWithErrors = findLinesWithIncorrectElementCount(fromLines: lines)
+        let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
         print("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {

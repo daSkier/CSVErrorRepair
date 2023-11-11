@@ -144,7 +144,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = CSVErrorScanner.getLines(fromString: fileString)
-                    let linesWithIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
                             scanner.repairSequentialLines(lines: &lines,
@@ -153,7 +153,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         }
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                        let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
                             let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
                             guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
@@ -171,7 +171,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                                                     fileName: csvFile.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                         }
-                        let linesWithIssuesAfterLongLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         if !linesWithIssuesAfterLongLineRepair.isEmpty {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
@@ -207,7 +207,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             }
             return type
         }
-        let lineIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+        let lineIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
@@ -217,7 +217,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             }
             lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-            let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
+            let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.targetColumnCount,
