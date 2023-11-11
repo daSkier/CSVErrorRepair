@@ -199,22 +199,23 @@ struct LineScanner {
                 return
             }
             // we subtract 1 from the end because one column will be merged with another
-            guard firstLineIndices.count + mergeLineIndices.count - 1 <= targetColumnCount else {
-//                print("combining the merge line would make the line too long")
+            guard firstLineIndices.count + mergeLineIndices.count - 1 <= (targetColumnCount+1) else {
+                print("combining the merge line would make the line too long (\(firstLineIndices.count + mergeLineIndices.count - 1) vs. \(targetColumnCount) - firstLine: \(lines[firstLineIndex]) secondLine: \(lines[firstLineIndex + linesAhead])")
                 return
             }
 
-            lines[firstLineIndex][firstLineLastIndex].append(lines[firstLineIndex + linesAhead][mergeLineFirstIndex])
-            lines[firstLineIndex + linesAhead].removeFirst()
-            lines[firstLineIndex].append(contentsOf: lines[firstLineIndex + linesAhead])
-            lines[firstLineIndex + linesAhead].removeAll()
+            lines[firstLineIndex][firstLineLastIndex].append(lines[firstLineIndex + linesAhead][mergeLineFirstIndex]) // merge first/last element to account for new line split
+            lines[firstLineIndex + linesAhead].removeFirst() // remove because it was just merged
+            lines[firstLineIndex].append(contentsOf: lines[firstLineIndex + linesAhead]) // append rest of line
+            lines[firstLineIndex + linesAhead].removeAll() // remove merge line
+//            print("merging index \(firstLineIndex) with \(firstLineIndex + linesAhead) to get: \(lines[firstLineIndex])")
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
     func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
         let linesWithErrors = findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
-//        print("lines with errors: \(linesWithErrors)")
+        print("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {
             if currentIndex < linesWithErrors.count - 1 {
                 let nextElement = linesWithErrors[currentIndex + 1]
