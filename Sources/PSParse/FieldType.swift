@@ -370,7 +370,7 @@ extension FieldType {
         "Gender": .string(nullable: false, expectedLength: 1, startsWith: nil, contains: nil),
         "Xvalue": .empty,
         "Yvalue": .empty,
-        "Zvalue": .integer(nullable: false, expectedValue: nil, expectedLength: <#T##Int?#>),
+        "Zvalue": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
         "Minpenalty": .unknownString(nullable: true),
         "Maxpenalty": .unknownString(nullable: true),
         "Fvalue": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
