@@ -165,7 +165,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                             return type
                         }
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.targetColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                     fileName: csvFile.lastPathComponent,
@@ -219,7 +219,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
             let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                scanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.targetColumnCount,
                                                                         expectedFieldTypes: fieldTypes,
                                                                         fileName: "AL1319evt.csv",

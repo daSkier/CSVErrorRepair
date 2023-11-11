@@ -43,7 +43,7 @@ struct CSVErrorScanner {
         return indicesWithIssue
     }
 
-    func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
+    static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
 //        print("reviewing line: \(separatedLine)")
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
