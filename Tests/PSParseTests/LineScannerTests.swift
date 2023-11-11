@@ -125,13 +125,12 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let scanner = LineScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
-        let enum1 = fileManager.enumerator(at: directoryUrl, 
+        let enum1 = fileManager.enumerator(at: directoryUrl,
                                            includingPropertiesForKeys: nil,
                                            options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
             .filter { csvFile in
-                let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
                 let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
                 if !expectedFisFileTypes.contains(fileFisType) {
                     print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
@@ -157,7 +156,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
-                            let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
                             let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
                             guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
                                 fatalError("failed to get file mapping dict")

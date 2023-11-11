@@ -222,9 +222,9 @@ struct LineScanner {
                 if currentElement.lineIndex + 1 == nextElement.lineIndex {
                     repairSequentialLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.targetColumnCount)
                 }
-                } else {
-                    print("No more elements after current")
-                }
+            } else {
+                print("No more elements after current")
+            }
         }
         lines.removeAll { $0.count == 0}
         lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
