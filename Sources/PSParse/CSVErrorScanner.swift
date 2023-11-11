@@ -8,14 +8,14 @@
 import Foundation
 
 struct CSVErrorScanner {
-    func getLines(fromString inputString: String) -> [[String]] {
+    static func getLines(fromString inputString: String) -> [[String]] {
         inputString.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .newlines) }
             .map { $0.components(separatedBy: "\t") }
     }
 
     func findLinesWithErrors(fromString inputString: String) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
-        let separatedLines = getLines(fromString: inputString)
+        let separatedLines = CSVErrorScanner.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []

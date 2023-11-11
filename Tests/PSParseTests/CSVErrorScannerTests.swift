@@ -47,7 +47,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrors() throws {
         let scanner = CSVErrorScanner()
-        var lines = scanner.getLines(fromString: sampleRacErrorData)
+        var lines = CSVErrorScanner.getLines(fromString: sampleRacErrorData)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
 //        print("initial line count: \(lines.count)")
@@ -64,7 +64,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     func testFindAndRepairLinesWithErrorsForFull1919raceFile() throws {
         let fileString = try String(contentsOfFile: AL1919racFilePath, encoding: .isoLatin1)
         let scanner = CSVErrorScanner()
-        var lines = scanner.getLines(fromString: fileString)
+        var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
@@ -81,7 +81,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     func testFindAndRepairLinesWithErrorsForFull1014raceFile() throws {
         let fileString = try String(contentsOfFile: AL1014racFilePath, encoding: .isoLatin1)
         let scanner = CSVErrorScanner()
-        var lines = scanner.getLines(fromString: fileString)
+        var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
 //        print("file:\n\(fileString)")
@@ -98,7 +98,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     func testFindAndRepairLinesWithErrorsForFull919ptsShortFile() throws {
         let fileString = try String(contentsOfFile: AL919ptsShortFilePath, encoding: .isoLatin1)
         let scanner = CSVErrorScanner()
-        var lines = scanner.getLines(fromString: fileString)
+        var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
@@ -144,7 +144,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]) in
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
-                    var lines = scanner.getLines(fromString: fileString)
+                    var lines = CSVErrorScanner.getLines(fromString: fileString)
                     let linesWithIssues = scanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
@@ -201,7 +201,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
         let scanner = CSVErrorScanner()
-        var lines = scanner.getLines(fromString: fileString)
+        var lines = CSVErrorScanner.getLines(fromString: fileString)
         let fieldTypes = lines.first!.map { fieldName in
             guard let type = FieldType.eventFieldNameToTypes[fieldName] else {
                 fatalError("failed to get field type for \(fieldName)")
@@ -231,7 +231,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testGetAllHeaders() async throws {
         let expectedTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let scanner = CSVErrorScanner()
         let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: fisArchives, isDirectory: true)
         let enum1 = fileManager.enumerator(at: directoryUrl,
@@ -244,7 +243,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             .concurrentMap { csvFile -> (lastPathComponent: String, fileType: String, firstLine: [String]) in
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
-                    let lines = scanner.getLines(fromString: fileString)
+                    let lines = CSVErrorScanner.getLines(fromString: fileString)
                     let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
                     let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
                     if !expectedTypes.contains(fileFisType) {
