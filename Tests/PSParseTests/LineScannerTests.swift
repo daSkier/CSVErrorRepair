@@ -142,7 +142,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             }
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
-            .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]) in
+            .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]) in
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = scanner.getLines(fromString: fileString)
@@ -188,7 +188,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let totalLinesWithErrors = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             partialResult.append(contentsOf: fileIssues.issues)
         }
-        let linesWithTooManyElements = totalLinesWithErrors.filter { $0.lineCount > $0.targetColumnCount }
+        let linesWithTooManyElements = totalLinesWithErrors.filter { $0.columnCount > $0.targetColumnCount }
         print("files not solved with error correction:")
         print("found \(totalLinesWithErrors.count) lines with incorrect column counts")
         print("found \(linesWithTooManyElements.count) lines with too many columns")

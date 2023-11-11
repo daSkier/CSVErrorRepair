@@ -27,12 +27,12 @@ struct LineScanner {
         return indicesWithIssue
     }
 
-    func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
+    func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
-        var indicesWithIssue = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
+        var indicesWithIssue = [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
 //                print("skipping adding a last line becasuse it had one element which was empty")
