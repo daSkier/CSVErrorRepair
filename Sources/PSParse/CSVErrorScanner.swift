@@ -305,10 +305,61 @@ struct CSVErrorScanner {
         return fileErrors
 
     }
+
+    static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [CSVFileIssues] {
+        let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }
+        print("csvItems.count: \(csvData.count)")
+        let fileErrors = try await csvData
+            .concurrentMap { csvFile -> CSVFileIssues in
+                guard let mappingDict = fileToFieldType(csvFile.0) else {
+                    fatalError("failed to get file mapping dict")
+                }
+                return try autoreleasepool {
+                    guard let fileString = String(data: csvFile.1, encoding: .isoLatin1) else {
+                        throw ParseError.failedToGetStringFromData
+                    }
+                    var lines = CSVErrorScanner.getLines(fromString: fileString)
+                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                    if linesWithIssues.count > 0 {
+                        for issueLine in linesWithIssues {
+                            CSVErrorScanner.repairSequentialLines(lines: &lines,
+                                                          firstLineIndex: issueLine.lineIndex,
+                                                          targetColumnCount: issueLine.targetColumnCount)
+                        }
+                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let fieldTypes = lines.first!.map { fieldName in
+                            guard let type = mappingDict[fieldName] else {
+                                fatalError("failed to get field type for \(fieldName)")
+                            }
+                            return type
+                        }
+                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                                    targetColumnCount: issueLine.targetColumnCount,
+                                                                                    expectedFieldTypes: fieldTypes,
+                                                                                            fileName: csvFile.0.lastPathComponent,
+                                                                                    lineNumber: issueLine.lineIndex)
+                        }
+                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
+                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
+                        }
+                        return CSVFileIssues(fileUrl: csvFile.0, issues: linesWithIssuesAfterLongLineRepair)
+                    }else{
+                        return CSVFileIssues(fileUrl: csvFile.0, issues: linesWithIssues)
+                    }
+                }
+            }
+        return fileErrors
+
+    }
 }
 
 enum ParseError: Error {
     case failedToGetLastItemFromValidatedIndicyArray
+    case failedToGetStringFromData
 }
 
 struct ValidationResultSet {
