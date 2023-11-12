@@ -140,7 +140,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let totalLinesWithErrors = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             partialResult.append(contentsOf: fileIssues.issues)
         }
-        let linesWithTooManyElements = totalLinesWithErrors.filter { $0.columnCount > $0.targetColumnCount }
+        let linesWithTooManyElements = totalLinesWithErrors.filter { $0.columnCount > $0.expectedColumnCount }
         print("files not solved with error correction:")
         print("found \(totalLinesWithErrors.count) lines with incorrect column counts")
         print("found \(linesWithTooManyElements.count) lines with too many columns")
@@ -164,14 +164,14 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             for issueLine in lineIssues {
                 CSVErrorScanner.repairSequentialLines(lines: &lines,
                                               firstLineIndex: issueLine.lineIndex,
-                                              targetColumnCount: issueLine.targetColumnCount)
+                                              targetColumnCount: issueLine.expectedColumnCount)
             }
             lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
             let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                        targetColumnCount: issueLine.targetColumnCount,
+                                                                        targetColumnCount: issueLine.expectedColumnCount,
                                                                         expectedFieldTypes: fieldTypes,
                                                                         fileName: "AL1319evt.csv",
                                                                         lineNumber: issueLine.lineIndex)

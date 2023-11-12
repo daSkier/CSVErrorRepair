@@ -23,7 +23,7 @@ struct CSVErrorScanner {
         }
         var indicesWithIssue = [CSVLineIssue]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
-            indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, targetColumnCount: firstLineColumnCount))
+            indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, expectedColumnCount: firstLineColumnCount))
         }
         return indicesWithIssue
     }
@@ -38,7 +38,7 @@ struct CSVErrorScanner {
             if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
                 //print("skipping adding a last line becasuse it had one element which was empty")
             } else {
-                indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, targetColumnCount: firstLineColumnCount))
+                indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, expectedColumnCount: firstLineColumnCount))
             }
         }
         return indicesWithIssue
@@ -273,7 +273,7 @@ struct CSVErrorScanner {
                         for issueLine in linesWithIssues {
                             CSVErrorScanner.repairSequentialLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
-                                                          targetColumnCount: issueLine.targetColumnCount)
+                                                          targetColumnCount: issueLine.expectedColumnCount)
                         }
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
@@ -286,7 +286,7 @@ struct CSVErrorScanner {
                         }
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
                             CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.targetColumnCount,
+                                                                                    targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                     fileName: csvFile.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
@@ -323,7 +323,7 @@ struct CSVErrorScanner {
                         for issueLine in linesWithIssues {
                             CSVErrorScanner.repairSequentialLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
-                                                          targetColumnCount: issueLine.targetColumnCount)
+                                                          targetColumnCount: issueLine.expectedColumnCount)
                         }
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
@@ -336,7 +336,7 @@ struct CSVErrorScanner {
                         }
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
                             CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.targetColumnCount,
+                                                                                    targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                             fileName: csvFile.0.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
@@ -423,5 +423,5 @@ struct CSVFileIssues {
 struct CSVLineIssue {
     var lineIndex: Int
     var columnCount: Int
-    var targetColumnCount: Int
+    var expectedColumnCount: Int
 }
