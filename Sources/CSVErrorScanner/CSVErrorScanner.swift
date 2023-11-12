@@ -36,6 +36,7 @@ struct CSVErrorScanner {
         var indicesWithIssue = [CSVLineIssue]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
+                // to skip empty last lines for files that include a last line with /cr or /r
                 //print("skipping adding a last line becasuse it had one element which was empty")
             } else {
                 indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, expectedColumnCount: firstLineColumnCount))
@@ -172,7 +173,7 @@ struct CSVErrorScanner {
         return result
     }
 
-    static func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
+    static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
         var linesAhead = 0
         repeat {
             linesAhead += 1
@@ -216,7 +217,7 @@ struct CSVErrorScanner {
             if currentIndex < linesWithErrors.count - 1 {
                 let nextElement = linesWithErrors[currentIndex + 1]
                 if currentElement.lineIndex + 1 == nextElement.lineIndex {
-                    Self.repairSequentialLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.targetColumnCount)
+                    Self.repairSequentialShortLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.expectedColumnCount)
                 }
             } else {
                 print("No more elements after current")
@@ -271,7 +272,7 @@ struct CSVErrorScanner {
                     let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
-                            CSVErrorScanner.repairSequentialLines(lines: &lines,
+                            CSVErrorScanner.repairSequentialShortLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }
@@ -321,7 +322,7 @@ struct CSVErrorScanner {
                     let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
-                            CSVErrorScanner.repairSequentialLines(lines: &lines,
+                            CSVErrorScanner.repairSequentialShortLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }

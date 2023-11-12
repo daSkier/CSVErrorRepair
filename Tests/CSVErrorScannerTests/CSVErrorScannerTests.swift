@@ -162,7 +162,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
-                CSVErrorScanner.repairSequentialLines(lines: &lines,
+                CSVErrorScanner.repairSequentialShortLines(lines: &lines,
                                               firstLineIndex: issueLine.lineIndex,
                                               targetColumnCount: issueLine.expectedColumnCount)
             }
