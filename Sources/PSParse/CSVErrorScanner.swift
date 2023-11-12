@@ -259,11 +259,10 @@ struct CSVErrorScanner {
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
             .filter {  fileFilter($0) }
-        let fieldClosure = fileToFieldType
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> CSVFileIssues in
-                guard let mappingDict = fieldClosure(csvFile) else {
+                guard let mappingDict = fileToFieldType(csvFile) else {
                     fatalError("failed to get file mapping dict")
                 }
                 return try autoreleasepool {
