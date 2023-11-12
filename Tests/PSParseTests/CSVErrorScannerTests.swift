@@ -107,7 +107,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         XCTAssertNotEqual(initLinesCount, lines.count)
     }
 
-    func testFindErrorsInDirectory() async throws {
+    func testCorrectErrorsInDirectory() async throws {
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
         let fileErrors = try await CSVErrorScanner.correctErrorsIn(directory: directoryUrl)
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
