@@ -7,7 +7,7 @@
 
 import XCTest
 import CollectionConcurrencyKit
-@testable import PSParse
+@testable import CSVErrorScanner
 
 final class CSVErrorScannerTests: XCTestCase {
 
