@@ -353,7 +353,42 @@ struct CSVErrorScanner {
                 }
             }
         return fileErrors
+    }
 
+    static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> CSVFileIssues {
+        return autoreleasepool {
+            let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+            if linesWithIssues.count > 0 {
+                for issueLine in linesWithIssues {
+                    CSVErrorScanner.repairSequentialShortLines(lines: &lines,
+                                                  firstLineIndex: issueLine.lineIndex,
+                                                  targetColumnCount: issueLine.expectedColumnCount)
+                }
+                lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+                lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                let fieldTypes = lines.first!.map { fieldName in
+                    guard let type = fieldTypes[fieldName] else {
+                        fatalError("failed to get field type for \(fieldName)")
+                    }
+                    return type
+                }
+                for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                    CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                                    targetColumnCount: issueLine.expectedColumnCount,
+                                                                                    expectedFieldTypes: fieldTypes,
+                                                                                    fileName: url.lastPathComponent,
+                                                                                    lineNumber: issueLine.lineIndex)
+                }
+                let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                if !linesWithIssuesAfterLongLineRepair.isEmpty {
+                    print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
+                }
+                return CSVFileIssues(fileUrl: url, issues: linesWithIssuesAfterLongLineRepair)
+            }else{
+                return CSVFileIssues(fileUrl: url, issues: linesWithIssues)
+            }
+        }
     }
 }
 
