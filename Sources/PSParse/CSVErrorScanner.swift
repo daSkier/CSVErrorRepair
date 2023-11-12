@@ -36,7 +36,7 @@ struct CSVErrorScanner {
         var indicesWithIssue = [CSVLineIssue]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
-//                print("skipping adding a last line becasuse it had one element which was empty")
+                //print("skipping adding a last line becasuse it had one element which was empty")
             } else {
                 indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, targetColumnCount: firstLineColumnCount))
             }
@@ -45,7 +45,6 @@ struct CSVErrorScanner {
     }
 
     static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
-//        print("reviewing line: \(separatedLine)")
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
@@ -74,8 +73,6 @@ struct CSVErrorScanner {
                                      invalidIndicesForward: postMergeValidation.invalidIndiciesForward,
                                      invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count
                                     ))
-
-//                postMergeValidation.printResults()
             }
             let finalMergeResults = mergeResults.sorted { $0.invalidIndicesCount < $1.invalidIndicesCount }
             let minErrors = finalMergeResults

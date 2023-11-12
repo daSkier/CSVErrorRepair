@@ -48,7 +48,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         var lines = CSVErrorScanner.getLines(fromString: sampleRacErrorData)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
-//        print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
         CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
@@ -56,7 +55,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
         XCTAssertTrue(linesWithIncorrectLength.count == 0)
         XCTAssertNotEqual(initLinesCount, lines.count)
-//        XCTAssertEqual(lines.count, 4)
     }
 
     func testFindAndRepairLinesWithErrorsForFull1919raceFile() throws {
@@ -80,7 +78,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         var lines = CSVErrorScanner.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
-//        print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
         CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
