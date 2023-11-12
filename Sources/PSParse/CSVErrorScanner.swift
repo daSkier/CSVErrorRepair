@@ -254,34 +254,21 @@ struct CSVErrorScanner {
         }
     }
 
-    static func correctErrorsIn(directory: URL) async throws -> [(fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)])] {
-        let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let expectedFisFileHeaderDictionary = ["evt": FieldType.eventFieldNameToTypes,
-                                               "pts": FieldType.pointsFieldNameToTypes,
-                                               "com": FieldType.athleteFieldNameToTypes,
-                                               "rac": FieldType.raceFieldNameToTypes,
-                                               "res": FieldType.raceResultFieldNameToTypes,
-                                               "dis": FieldType.disFieldNameToTypes,
-                                               "hdr": FieldType.hdrFieldNameToTypes,
-                                               "cat": FieldType.catFieldNameToTypes]
-        let fileManager = FileManager.default
-        let enum1 = fileManager.enumerator(at: directory,
-                                           includingPropertiesForKeys: nil,
-                                           options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
+    static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [(fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)])] {
+        let enum1 = FileManager.default
+            .enumerator(at: directory,
+                        includingPropertiesForKeys: nil,
+                        options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
-            .filter { csvFile in
-                let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                if !expectedFisFileTypes.contains(fileFisType) {
-                    print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
-                    return false
-                }else{
-                    return true
-                }
-            }
+            .filter {  fileFilter($0) }
+        let fieldClosure = fileToFieldType
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]) in
+                guard let mappingDict = fieldClosure(csvFile) else {
+                    fatalError("failed to get file mapping dict")
+                }
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = CSVErrorScanner.getLines(fromString: fileString)
@@ -296,10 +283,6 @@ struct CSVErrorScanner {
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
-                            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                            guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
-                                fatalError("failed to get file mapping dict")
-                            }
                             guard let type = mappingDict[fieldName] else {
                                 fatalError("failed to get field type for \(fieldName)")
                             }

@@ -109,7 +109,31 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testCorrectErrorsInDirectory() async throws {
         let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
-        let fileErrors = try await CSVErrorScanner.correctErrorsIn(directory: directoryUrl)
+        let fileFilter = { (csvFile: URL) -> Bool in
+            let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
+            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+            if !expectedFisFileTypes.contains(fileFisType) {
+                print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
+                return false
+            }else{
+                return true
+            }
+        }
+        let fileToFildMapping = { (csvFile: URL) -> [String: FieldType]? in
+            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+            let expectedFisFileHeaderDictionary = ["evt": SampleFieldMappings.eventFieldNameToTypes,
+                                                   "pts": SampleFieldMappings.pointsFieldNameToTypes,
+                                                   "com": SampleFieldMappings.athleteFieldNameToTypes,
+                                                   "rac": SampleFieldMappings.raceFieldNameToTypes,
+                                                   "res": SampleFieldMappings.raceResultFieldNameToTypes,
+                                                   "dis": SampleFieldMappings.disFieldNameToTypes,
+                                                   "hdr": SampleFieldMappings.hdrFieldNameToTypes,
+                                                   "cat": SampleFieldMappings.catFieldNameToTypes]
+            return expectedFisFileHeaderDictionary[fileFisType]
+        }
+        let fileErrors = try await CSVErrorScanner.correctErrorsIn(directory: directoryUrl,
+                                                                   fileFilter: fileFilter,
+                                                                   fileToFieldType: fileToFildMapping)
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
         let nonEmptyFileErrorDetails = nonEmptyFileErrors.reduce(into: []) { partialResult, fileIssues in
             return partialResult.append((fileUrl: fileIssues.fileUrl, issueCount: fileIssues.issues.count))
