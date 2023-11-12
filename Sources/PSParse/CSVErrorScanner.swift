@@ -15,37 +15,36 @@ struct CSVErrorScanner {
             .map { $0.components(separatedBy: "\t") }
     }
 
-    static func findLinesWithErrors(fromString inputString: String) -> [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)] {
+    static func findLinesWithErrors(fromString inputString: String) -> [CSVLineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
-        var indicesWithIssue = [(lineIndex: Int, lineCount: Int, targetColumnCount: Int)]()
+        var indicesWithIssue = [CSVLineIssue]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
-            indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
+            indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, targetColumnCount: firstLineColumnCount))
         }
         return indicesWithIssue
     }
 
-    static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)] {
+    static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [CSVLineIssue] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
         }
-        var indicesWithIssue = [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]()
+        var indicesWithIssue = [CSVLineIssue]()
         for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
             if index == separatedLines.indices.last && separatedLines[index].count == 1 && separatedLines[index].first!.isEmpty {
-//                print("skipping adding a last line becasuse it had one element which was empty")
+                //print("skipping adding a last line becasuse it had one element which was empty")
             } else {
-                indicesWithIssue.append((index, separatedLines[index].count, firstLineColumnCount))
+                indicesWithIssue.append(CSVLineIssue(lineIndex: index, columnCount: separatedLines[index].count, targetColumnCount: firstLineColumnCount))
             }
         }
         return indicesWithIssue
     }
 
     static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
-//        print("reviewing line: \(separatedLine)")
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
@@ -74,8 +73,6 @@ struct CSVErrorScanner {
                                      invalidIndicesForward: postMergeValidation.invalidIndiciesForward,
                                      invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count
                                     ))
-
-//                postMergeValidation.printResults()
             }
             let finalMergeResults = mergeResults.sorted { $0.invalidIndicesCount < $1.invalidIndicesCount }
             let minErrors = finalMergeResults
@@ -176,7 +173,6 @@ struct CSVErrorScanner {
     }
 
     static func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
-//        print("repairing line with index \(firstLineIndex) and next")
         var linesAhead = 0
         repeat {
             linesAhead += 1
@@ -184,11 +180,9 @@ struct CSVErrorScanner {
             let mergeLineIndices = lines[firstLineIndex + linesAhead].indices
 
             guard firstLineIndices.isEmpty != true else {
-//                print("firstLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard mergeLineIndices.isEmpty != true else {
-//                print("secondLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard let firstLineLastIndex = firstLineIndices.last else {
@@ -211,7 +205,6 @@ struct CSVErrorScanner {
             lines[firstLineIndex + linesAhead].removeFirst() // remove because it was just merged
             lines[firstLineIndex].append(contentsOf: lines[firstLineIndex + linesAhead]) // append rest of line
             lines[firstLineIndex + linesAhead].removeAll() // remove merge line
-//            print("merging index \(firstLineIndex) with \(firstLineIndex + linesAhead) to get: \(lines[firstLineIndex])")
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
@@ -258,34 +251,20 @@ struct CSVErrorScanner {
         }
     }
 
-    static func correctErrorsIn(directory: URL) async throws -> [(fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)])] {
-        let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let expectedFisFileHeaderDictionary = ["evt": FieldType.eventFieldNameToTypes,
-                                               "pts": FieldType.pointsFieldNameToTypes,
-                                               "com": FieldType.athleteFieldNameToTypes,
-                                               "rac": FieldType.raceFieldNameToTypes,
-                                               "res": FieldType.raceResultFieldNameToTypes,
-                                               "dis": FieldType.disFieldNameToTypes,
-                                               "hdr": FieldType.hdrFieldNameToTypes,
-                                               "cat": FieldType.catFieldNameToTypes]
-        let fileManager = FileManager.default
-        let enum1 = fileManager.enumerator(at: directory,
-                                           includingPropertiesForKeys: nil,
-                                           options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
+    static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [CSVFileIssues] {
+        let enum1 = FileManager.default
+            .enumerator(at: directory,
+                        includingPropertiesForKeys: nil,
+                        options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
-            .filter { csvFile in
-                let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                if !expectedFisFileTypes.contains(fileFisType) {
-                    print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
-                    return false
-                }else{
-                    return true
-                }
-            }
+            .filter {  fileFilter($0) }
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
-            .concurrentMap { csvFile -> (fileUrl: URL, issues: [(lineIndex: Int, columnCount: Int, targetColumnCount: Int)]) in
+            .concurrentMap { csvFile -> CSVFileIssues in
+                guard let mappingDict = fileToFieldType(csvFile) else {
+                    fatalError("failed to get file mapping dict")
+                }
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = CSVErrorScanner.getLines(fromString: fileString)
@@ -300,10 +279,6 @@ struct CSVErrorScanner {
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
                         let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
-                            let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
-                            guard let mappingDict = expectedFisFileHeaderDictionary[fileFisType] else {
-                                fatalError("failed to get file mapping dict")
-                            }
                             guard let type = mappingDict[fieldName] else {
                                 fatalError("failed to get field type for \(fieldName)")
                             }
@@ -320,9 +295,59 @@ struct CSVErrorScanner {
                         if !linesWithIssuesAfterLongLineRepair.isEmpty {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
-                        return (fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
+                        return CSVFileIssues(fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
                     }else{
-                        return (fileUrl: csvFile, issues: linesWithIssues )
+                        return CSVFileIssues(fileUrl: csvFile, issues: linesWithIssues)
+                    }
+                }
+            }
+        return fileErrors
+
+    }
+
+    static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [CSVFileIssues] {
+        let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }
+        print("csvItems.count: \(csvData.count)")
+        let fileErrors = try await csvData
+            .concurrentMap { csvFile -> CSVFileIssues in
+                guard let mappingDict = fileToFieldType(csvFile.0) else {
+                    fatalError("failed to get file mapping dict")
+                }
+                return try autoreleasepool {
+                    guard let fileString = String(data: csvFile.1, encoding: .isoLatin1) else {
+                        throw ParseError.failedToGetStringFromData
+                    }
+                    var lines = CSVErrorScanner.getLines(fromString: fileString)
+                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                    if linesWithIssues.count > 0 {
+                        for issueLine in linesWithIssues {
+                            CSVErrorScanner.repairSequentialLines(lines: &lines,
+                                                          firstLineIndex: issueLine.lineIndex,
+                                                          targetColumnCount: issueLine.targetColumnCount)
+                        }
+                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let fieldTypes = lines.first!.map { fieldName in
+                            guard let type = mappingDict[fieldName] else {
+                                fatalError("failed to get field type for \(fieldName)")
+                            }
+                            return type
+                        }
+                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                                    targetColumnCount: issueLine.targetColumnCount,
+                                                                                    expectedFieldTypes: fieldTypes,
+                                                                                            fileName: csvFile.0.lastPathComponent,
+                                                                                    lineNumber: issueLine.lineIndex)
+                        }
+                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
+                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
+                        }
+                        return CSVFileIssues(fileUrl: csvFile.0, issues: linesWithIssuesAfterLongLineRepair)
+                    }else{
+                        return CSVFileIssues(fileUrl: csvFile.0, issues: linesWithIssues)
                     }
                 }
             }
@@ -333,6 +358,7 @@ struct CSVErrorScanner {
 
 enum ParseError: Error {
     case failedToGetLastItemFromValidatedIndicyArray
+    case failedToGetStringFromData
 }
 
 struct ValidationResultSet {
@@ -387,4 +413,15 @@ struct ValidationResultSet {
     enum ValidationResultSetError: Error {
         case oneLastIndicyNil
     }
+}
+
+struct CSVFileIssues {
+    var fileUrl: URL
+    var issues: [CSVLineIssue]
+}
+
+struct CSVLineIssue {
+    var lineIndex: Int
+    var columnCount: Int
+    var targetColumnCount: Int
 }
