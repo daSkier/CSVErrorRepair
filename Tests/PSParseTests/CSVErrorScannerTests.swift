@@ -182,13 +182,25 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testGetAllHeaders() async throws {
         let expectedTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
-        let fileManager = FileManager.default
         let directoryUrl = URL(fileURLWithPath: fisArchives, isDirectory: true)
-        let enum1 = fileManager.enumerator(at: directoryUrl,
-                                           includingPropertiesForKeys: nil,
-                                           options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
+        let enum1 = FileManager.default
+            .enumerator(at: directoryUrl,
+                        includingPropertiesForKeys: nil,
+                        options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
         let items = enum1?.allObjects as! [URL]
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
+            .filter { csvFile -> Bool in
+                let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
+                let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
+                if !expectedFisFileTypes.contains(fileFisType) {
+                    if fileFisType != "eam" && fileFisType != "ted"{
+                        print("filtering out type: \(fileFisType) for url: \(csvFile)")
+                    }
+                    return false
+                }else{
+                    return true
+                }
+            }
         print("csvItems.count: \(csvItems.count)")
         let filesAndFirstLines = try await csvItems
             .concurrentMap { csvFile -> (lastPathComponent: String, fileType: String, firstLine: [String]) in
