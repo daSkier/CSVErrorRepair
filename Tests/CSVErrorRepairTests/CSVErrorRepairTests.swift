@@ -7,9 +7,9 @@
 
 import XCTest
 import CollectionConcurrencyKit
-@testable import CSVErrorScanner
+@testable import CSVErrorRepair
 
-final class CSVErrorScannerTests: XCTestCase {
+final class CSVErrorRepairTests: XCTestCase {
 
     let sampleRacErrorData = """
 Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2	Catcode3	Catcode4	Gender	Racedate	Starteventdate	Description	Place	Nationcode	Td1id	Td1name	Td1nation	Td1code	Td2id	Td2name	Td2nation	Td2code	Calstatuscode	Procstatuscode	Receiveddate	Pursuit	Masse	Relay	Distance	Hill	Style	Qualif	Finale	Homol	Webcomment	Displaystatus	Fisinterncomment	Published	Validforfispoints	Usedfislist	Tolist	Discforlistcode	Calculatedpenalty	Appliedpenalty	Appliedscala	Penscafixed	Version	Nationraceid	Provraceid	Msql7evid	Mssql7id	Results	Pdf	Topbanner	Bottombanner	Toplogo	Bottomlogo	Gallery	Indi	Team	Tabcount	Columncount	Level	Hloc1	Hloc2	Hloc3	Hcet1	Hcet2	Hcet3	Live	Livestatus1	Livestatus2	Livestatus3	Liveinfo1	Liveinfo2	Liveinfo3	Passwd	Timinglogo	validdate	TDdoc	Timingreport	Special_cup_points	Skip_wcsl	Lastupdate
@@ -38,18 +38,18 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testFindLinesWithErrors() throws {
-        let errorLines = CSVErrorScanner.findLinesWithErrors(fromString: sampleRacErrorData)
+        let errorLines = CSVErrorRepair.findLinesWithErrors(fromString: sampleRacErrorData)
         XCTAssertEqual(errorLines.count, 4)
         XCTAssertEqual(errorLines.map{ $0.lineIndex }, [3,4,5,6])
         print("error lines: \(errorLines)")
     }
 
     func testFindAndRepairLinesWithErrors() throws {
-        var lines = CSVErrorScanner.getLines(fromString: sampleRacErrorData)
+        var lines = CSVErrorRepair.getLines(fromString: sampleRacErrorData)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("init lines element counts: \(lines.map{ $0.count })")
-        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorRepair.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
@@ -59,13 +59,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1919raceFile() throws {
         let fileString = try String(contentsOfFile: AL1919racFilePath, encoding: .isoLatin1)
-        var lines = CSVErrorScanner.getLines(fromString: fileString)
+        var lines = CSVErrorRepair.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorRepair.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
@@ -75,12 +75,12 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull1014raceFile() throws {
         let fileString = try String(contentsOfFile: AL1014racFilePath, encoding: .isoLatin1)
-        var lines = CSVErrorScanner.getLines(fromString: fileString)
+        var lines = CSVErrorRepair.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorRepair.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count < firstLineLength }
@@ -90,13 +90,13 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLinesWithErrorsForFull919ptsShortFile() throws {
         let fileString = try String(contentsOfFile: AL919ptsShortFilePath, encoding: .isoLatin1)
-        var lines = CSVErrorScanner.getLines(fromString: fileString)
+        var lines = CSVErrorRepair.getLines(fromString: fileString)
         let initLinesCount = lines.count
         let firstLineLength = lines.first!.count
         print("file:\n\(fileString)")
         print("initial line count: \(lines.count)")
         print("init lines element counts: \(lines.map{ $0.count })")
-        CSVErrorScanner.findAndRepairLinesWithTooFewElements(&lines)
+        CSVErrorRepair.findAndRepairLinesWithTooFewElements(&lines)
         print("final lines count: \(lines.count)")
         print("final lines element counts: \(lines.map{ $0.count })")
         let linesWithIncorrectLength = lines.filter { $0.count != firstLineLength }
@@ -130,7 +130,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                    "cat": SampleFieldMappings.catFieldNameToTypes]
             return expectedFisFileHeaderDictionary[fileFisType]
         }
-        let fileErrors = try await CSVErrorScanner.correctErrorsIn(directory: directoryUrl,
+        let fileErrors = try await CSVErrorRepair.correctErrorsIn(directory: directoryUrl,
                                                                    fileFilter: fileFilter,
                                                                    fileToFieldType: fileToFildMapping)
         let nonEmptyFileErrors = fileErrors.filter { $0.issues.count > 0 }
@@ -151,26 +151,26 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 
     func testFindAndRepairLongLinesWithErrorsForFull1319EventFile() throws {
         let fileString = try String(contentsOfFile: AL1319EventWithLongLinePath, encoding: .isoLatin1)
-        var lines = CSVErrorScanner.getLines(fromString: fileString)
+        var lines = CSVErrorRepair.getLines(fromString: fileString)
         let fieldTypes = lines.first!.map { fieldName in
             guard let type = SampleFieldMappings.eventFieldNameToTypes[fieldName] else {
                 fatalError("failed to get field type for \(fieldName)")
             }
             return type
         }
-        let lineIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+        let lineIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
         print("init lineIssues: \(lineIssues)")
         if lineIssues.count > 0 {
             for issueLine in lineIssues {
-                CSVErrorScanner.repairSequentialShortLines(lines: &lines,
+                CSVErrorRepair.repairSequentialShortLines(lines: &lines,
                                               firstLineIndex: issueLine.lineIndex,
                                               targetColumnCount: issueLine.expectedColumnCount)
             }
             lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
             lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-            let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+            let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                         targetColumnCount: issueLine.expectedColumnCount,
                                                                         expectedFieldTypes: fieldTypes,
                                                                         fileName: "AL1319evt.csv",
@@ -205,7 +205,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             .concurrentMap { csvFile -> (lastPathComponent: String, fileType: String, firstLine: [String]) in
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
-                    let lines = CSVErrorScanner.getLines(fromString: fileString)
+                    let lines = CSVErrorRepair.getLines(fromString: fileString)
                     let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
                     let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
                     if !expectedTypes.contains(fileFisType) {

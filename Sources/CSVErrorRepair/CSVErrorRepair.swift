@@ -8,7 +8,7 @@
 import Foundation
 import CollectionConcurrencyKit
 
-struct CSVErrorScanner {
+struct CSVErrorRepair {
     static func getLines(fromString inputString: String) -> [[String]] {
         inputString.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .newlines) }
@@ -268,17 +268,17 @@ struct CSVErrorScanner {
                 }
                 return try autoreleasepool {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
-                    var lines = CSVErrorScanner.getLines(fromString: fileString)
-                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                    var lines = CSVErrorRepair.getLines(fromString: fileString)
+                    let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
-                            CSVErrorScanner.repairSequentialShortLines(lines: &lines,
+                            CSVErrorRepair.repairSequentialShortLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
                             guard let type = mappingDict[fieldName] else {
                                 fatalError("failed to get field type for \(fieldName)")
@@ -286,13 +286,13 @@ struct CSVErrorScanner {
                             return type
                         }
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                            CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                     fileName: csvFile.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                         }
-                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                         if !linesWithIssuesAfterLongLineRepair.isEmpty {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
@@ -318,17 +318,17 @@ struct CSVErrorScanner {
                     guard let fileString = String(data: csvFile.1, encoding: .isoLatin1) else {
                         throw ParseError.failedToGetStringFromData
                     }
-                    var lines = CSVErrorScanner.getLines(fromString: fileString)
-                    let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                    var lines = CSVErrorRepair.getLines(fromString: fileString)
+                    let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                     if linesWithIssues.count > 0 {
                         for issueLine in linesWithIssues {
-                            CSVErrorScanner.repairSequentialShortLines(lines: &lines,
+                            CSVErrorRepair.repairSequentialShortLines(lines: &lines,
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }
                         lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                         lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                         let fieldTypes = lines.first!.map { fieldName in
                             guard let type = mappingDict[fieldName] else {
                                 fatalError("failed to get field type for \(fieldName)")
@@ -336,13 +336,13 @@ struct CSVErrorScanner {
                             return type
                         }
                         for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                            CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                             fileName: csvFile.0.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                         }
-                        let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                        let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                         if !linesWithIssuesAfterLongLineRepair.isEmpty {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
@@ -357,16 +357,16 @@ struct CSVErrorScanner {
 
     static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> CSVFileIssues {
         return autoreleasepool {
-            let linesWithIssues = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+            let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             if linesWithIssues.count > 0 {
                 for issueLine in linesWithIssues {
-                    CSVErrorScanner.repairSequentialShortLines(lines: &lines,
+                    CSVErrorRepair.repairSequentialShortLines(lines: &lines,
                                                   firstLineIndex: issueLine.lineIndex,
                                                   targetColumnCount: issueLine.expectedColumnCount)
                 }
                 lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
                 lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                let linesWithIssuesAfterSequentialLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                 let fieldTypes = lines.first!.map { fieldName in
                     guard let type = fieldTypes[fieldName] else {
                         fatalError("failed to get field type for \(fieldName)")
@@ -374,13 +374,13 @@ struct CSVErrorScanner {
                     return type
                 }
                 for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                    CSVErrorScanner.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                    CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
                                                                                     fileName: url.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                 }
-                let linesWithIssuesAfterLongLineRepair = CSVErrorScanner.findLinesWithIncorrectElementCount(fromLines: lines)
+                let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
                 if !linesWithIssuesAfterLongLineRepair.isEmpty {
                     print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                 }
