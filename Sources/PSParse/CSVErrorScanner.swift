@@ -176,7 +176,6 @@ struct CSVErrorScanner {
     }
 
     static func repairSequentialLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
-//        print("repairing line with index \(firstLineIndex) and next")
         var linesAhead = 0
         repeat {
             linesAhead += 1
@@ -184,11 +183,9 @@ struct CSVErrorScanner {
             let mergeLineIndices = lines[firstLineIndex + linesAhead].indices
 
             guard firstLineIndices.isEmpty != true else {
-//                print("firstLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard mergeLineIndices.isEmpty != true else {
-//                print("secondLineIndices.isEmpty == true in repairLines")
                 return
             }
             guard let firstLineLastIndex = firstLineIndices.last else {
@@ -211,7 +208,6 @@ struct CSVErrorScanner {
             lines[firstLineIndex + linesAhead].removeFirst() // remove because it was just merged
             lines[firstLineIndex].append(contentsOf: lines[firstLineIndex + linesAhead]) // append rest of line
             lines[firstLineIndex + linesAhead].removeAll() // remove merge line
-//            print("merging index \(firstLineIndex) with \(firstLineIndex + linesAhead) to get: \(lines[firstLineIndex])")
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
