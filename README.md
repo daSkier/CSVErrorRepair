@@ -1,4 +1,4 @@
-# CSVErrorScanner
+# CSVErrorRepair
 CSVs can be tough. In my history I've come across files that have errors due to user input such as lines getting split in two or having too many columns. This library has a few tools for finding and resolving those issues. 
 
 The CSV issues this library seeks to resolve fall into two categories:
@@ -6,9 +6,9 @@ The CSV issues this library seeks to resolve fall into two categories:
 - **Lines that are too long** - This typically means the field/column was split due to the content including the separating character.
 
 ## Operate On Lines
-This package attempts to minimize copies by operating on arrays of `SubString`. As a result, many functions take a parameter of `[[String]]` and repair functions will use `inout` to apply fixes in place. `CSVErrorScanner` has a utility function `getLines(fromString inputString: String)` to produce this array. 
+This package attempts to minimize copies by operating on arrays of `SubString`. As a result, many functions take a parameter of `[[String]]` and repair functions will use `inout` to apply fixes in place. `CSVErrorRepair` has a utility function `getLines(fromString inputString: String)` to produce this array. 
 ```Swift
-struct CSVErrorScanner {
+struct CSVErrorRepair {
     static func getLines(fromString inputString: String) -> [[String]] { ... }
     ...
 }
@@ -16,7 +16,7 @@ struct CSVErrorScanner {
 **Example:**
 ```Swift
 let fileString = try String(contentsOfFile: "/SampleData/test.csv", encoding: .isoLatin1)
-var lines = CSVErrorScanner.getLines(fromString: fileString)
+var lines = CSVErrorRepair.getLines(fromString: fileString)
 ```
 
 ## Find Errors
@@ -78,7 +78,7 @@ static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTyp
 ## Tools For Collections
 There are two methods for running repairs on many files at once: 
 ```Swift
-struct CSVErrorScanner {
+struct CSVErrorRepair {
     ...
     static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [CSVFileIssues] { ... }
     static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [CSVFileIssues] { ... }
