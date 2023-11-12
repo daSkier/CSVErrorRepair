@@ -9,10 +9,10 @@ import Foundation
 import CollectionConcurrencyKit
 
 struct CSVErrorRepair {
-    static func getLines(fromString inputString: String) -> [[String]] {
-        inputString.components(separatedBy: "\n")
+    static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
+        inputString.components(separatedBy: lineDelimeter)
             .map { $0.trimmingCharacters(in: .newlines) }
-            .map { $0.components(separatedBy: "\t") }
+            .map { $0.components(separatedBy: columnDelimeter) }
     }
 
     static func findLinesWithErrors(fromString inputString: String) -> [CSVLineIssue] {
