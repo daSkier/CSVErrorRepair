@@ -108,12 +108,14 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
     }
 
     func testCorrectErrorsInDirectory() async throws {
-        let directoryUrl = URL(fileURLWithPath: sampleDataDirPath, isDirectory: true)
+        let directoryUrl = URL(fileURLWithPath: fisArchives, isDirectory: true)
         let fileFilter = { (csvFile: URL) -> Bool in
             let expectedFisFileTypes = Set(["evt", "pts", "com", "rac", "res", "dis", "hdr", "cat"])
             let fileFisType = String(csvFile.deletingPathExtension().lastPathComponent.suffix(3))
             if !expectedFisFileTypes.contains(fileFisType) {
-                print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
+                if fileFisType != "eam" && fileFisType != "ted"{
+                    print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
+                }
                 return false
             }else{
                 return true
