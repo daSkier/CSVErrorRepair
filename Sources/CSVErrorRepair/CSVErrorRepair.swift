@@ -15,6 +15,13 @@ struct CSVErrorRepair {
             .map { $0.components(separatedBy: columnDelimeter) }
     }
 
+    static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
+        guard let string = String(data: data, encoding: encoding) else {
+            throw ParseError.failedToGetStringFromData
+        }
+        return Self.getLines(fromString: string, lineDelimeter: lineDelimeter, columnDelimeter: columnDelimeter)
+    }
+
     static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n") -> String {
         return lines.map { cells -> String in
             return cells.joined(separator: columnDelimeter)
