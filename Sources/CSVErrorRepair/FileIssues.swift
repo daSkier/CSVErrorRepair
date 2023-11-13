@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CSVFileIssues {
+struct FileIssues {
     var fileUrl: URL
-    var issues: [CSVLineIssue]
+    var issues: [LineIssue]
 }
