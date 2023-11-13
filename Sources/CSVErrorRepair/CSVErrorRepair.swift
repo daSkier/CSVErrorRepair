@@ -15,6 +15,16 @@ struct CSVErrorRepair {
             .map { $0.components(separatedBy: columnDelimeter) }
     }
 
+    static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n") -> String {
+        return lines.map { cells -> String in
+            return cells.joined(separator: columnDelimeter)
+        }.joined(separator: lineDelimeter)
+    }
+
+    static func convertToData(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", encoding: String.Encoding = .isoLatin1) -> Data? {
+        return Self.convertToString(lines: lines, columnDelimeter: columnDelimeter, lineDelimeter: lineDelimeter).data(using: encoding)
+    }
+
     static func findLinesWithErrors(fromString inputString: String) -> [CSVLineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
