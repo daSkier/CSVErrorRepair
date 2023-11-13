@@ -413,14 +413,3 @@ enum ParseError: Error {
     case failedToGetLastItemFromValidatedIndicyArray
     case failedToGetStringFromData
 }
-
-struct CSVFileIssues {
-    var fileUrl: URL
-    var issues: [CSVLineIssue]
-}
-
-struct CSVLineIssue {
-    var lineIndex: Int
-    var columnCount: Int
-    var expectedColumnCount: Int
-}
