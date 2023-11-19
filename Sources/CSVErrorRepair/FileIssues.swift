@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FileIssues {
+public struct FileIssues {
     var fileUrl: URL
     var issues: [LineIssue]
 }

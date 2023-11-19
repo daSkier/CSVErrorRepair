@@ -5,7 +5,7 @@
 //  Created by Justin on 11/12/23.
 //
 
-struct ValidationResultSet {
+public struct ValidationResultSet {
     var validatedIndicesForward: [Int]
     var invalidIndiciesForward: [Int]
     var lessValidatedIndicesForward: [Int]
@@ -54,7 +54,7 @@ struct ValidationResultSet {
         print("invalidIndicesBackward: \(invalidIndicesBackward)")
         print("valid indicies array: \(String(describing: try? mergedLastIndices()))")
     }
-    enum ValidationResultSetError: Error {
+    public enum ValidationResultSetError: Error {
         case oneLastIndicyNil
     }
 }

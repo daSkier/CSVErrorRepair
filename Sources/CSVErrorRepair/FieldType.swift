@@ -19,7 +19,7 @@ let dateWithDashesFormatter = {
     return formatter
 }()
 
-enum FieldType: Equatable, Hashable {
+public enum FieldType: Equatable, Hashable {
     case integer(nullable: Bool, expectedValue: Int?, expectedLength: Int?)
     case float(nullable: Bool)
     case string(nullable: Bool, expectedLength: Int?, startsWith: String?, contains: String?)

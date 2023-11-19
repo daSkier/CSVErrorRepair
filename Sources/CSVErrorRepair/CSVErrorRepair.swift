@@ -8,7 +8,7 @@
 import Foundation
 import CollectionConcurrencyKit
 
-struct CSVErrorRepair {
+public struct CSVErrorRepair {
     static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
         inputString.components(separatedBy: lineDelimeter)
             .map { $0.trimmingCharacters(in: .newlines) }
@@ -409,7 +409,7 @@ struct CSVErrorRepair {
     }
 }
 
-enum ParseError: Error {
+public enum ParseError: Error {
     case failedToGetLastItemFromValidatedIndicyArray
     case failedToGetStringFromData
 }
