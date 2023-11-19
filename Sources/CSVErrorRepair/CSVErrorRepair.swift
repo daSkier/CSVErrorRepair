@@ -9,30 +9,30 @@ import Foundation
 import CollectionConcurrencyKit
 
 public struct CSVErrorRepair {
-    static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
+    public static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
         inputString.components(separatedBy: lineDelimeter)
             .map { $0.trimmingCharacters(in: .newlines) }
             .map { $0.components(separatedBy: columnDelimeter) }
     }
 
-    static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
+    public static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
         guard let string = String(data: data, encoding: encoding) else {
             throw ParseError.failedToGetStringFromData
         }
         return Self.getLines(fromString: string, lineDelimeter: lineDelimeter, columnDelimeter: columnDelimeter)
     }
 
-    static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n") -> String {
+    public static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n") -> String {
         return lines.map { cells -> String in
             return cells.joined(separator: columnDelimeter)
         }.joined(separator: lineDelimeter)
     }
 
-    static func convertToData(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", encoding: String.Encoding = .isoLatin1) -> Data? {
+    public static func convertToData(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", encoding: String.Encoding = .isoLatin1) -> Data? {
         return Self.convertToString(lines: lines, columnDelimeter: columnDelimeter, lineDelimeter: lineDelimeter).data(using: encoding)
     }
 
-    static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
+    public static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
@@ -45,7 +45,7 @@ public struct CSVErrorRepair {
         return indicesWithIssue
     }
 
-    static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [LineIssue] {
+    public static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [LineIssue] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
             return []
@@ -62,7 +62,7 @@ public struct CSVErrorRepair {
         return indicesWithIssue
     }
 
-    static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
+    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
             return
@@ -129,7 +129,7 @@ public struct CSVErrorRepair {
         }
     }
 
-    static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
+    public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
         let lineIndices = separatedLine.indices
 
         var result = ValidationResultSet(validatedIndicesForward: [],
@@ -190,7 +190,7 @@ public struct CSVErrorRepair {
         return result
     }
 
-    static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
+    public static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
         var linesAhead = 0
         repeat {
             linesAhead += 1
@@ -226,7 +226,7 @@ public struct CSVErrorRepair {
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
-    static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
+    public static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
         let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
         print("lines with errors: \(linesWithErrors)")
@@ -244,7 +244,7 @@ public struct CSVErrorRepair {
         lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
     }
 
-    static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
+    public static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
         let url = URL(fileURLWithPath: filePath)
 
         do {
@@ -269,7 +269,7 @@ public struct CSVErrorRepair {
         }
     }
 
-    static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
+    public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let enum1 = FileManager.default
             .enumerator(at: directory,
                         includingPropertiesForKeys: nil,
@@ -323,7 +323,7 @@ public struct CSVErrorRepair {
 
     }
 
-    static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
+    public static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }
         print("csvItems.count: \(csvData.count)")
         let fileErrors = try await csvData
@@ -372,7 +372,7 @@ public struct CSVErrorRepair {
         return fileErrors
     }
 
-    static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> FileIssues {
+    public static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> FileIssues {
         return autoreleasepool {
             let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             if linesWithIssues.count > 0 {
