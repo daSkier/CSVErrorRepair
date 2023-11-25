@@ -22,9 +22,15 @@ public struct CSVErrorRepair {
         return Self.getLines(fromString: string, lineDelimeter: lineDelimeter, columnDelimeter: columnDelimeter)
     }
 
-    public static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n") -> String {
-        return lines.map { cells -> String in
-            return cells.joined(separator: columnDelimeter)
+    public static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", checkForQuotes: Bool = false) -> String {
+        lines.map { cells -> String in
+            cells.map{ cell in
+                if cell.contains("\"") && checkForQuotes {
+                    return cell.replacingOccurrences(of: "\"", with: "")
+                }else{
+                    return cell
+                }
+            }.joined(separator: columnDelimeter)
         }.joined(separator: lineDelimeter)
     }
 
