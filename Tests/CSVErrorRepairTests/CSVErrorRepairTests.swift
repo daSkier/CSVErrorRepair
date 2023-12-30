@@ -24,6 +24,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
 """
     let AL1014racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/PointsListArchives/ALFP1014F/AL1014rac.csv"
     let AL1919racFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1919F/AL1919rac.csv"
+    let AL1314racFilePath = "/Users/js/code/PointStalker/FISListArchivesUncrompressedCleaned/ALFP1314F/AL1314rac.csv"
     let AL919ptsShortFilePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/AL919pts-short.csv"
     let sampleDataDirPath = "/Users/js/code/PSVapor/PSSampleData/SampleData/"
     let AL1319EventWithLongLinePath = "/Users/js/code/PSVapor/PSSampleData/SampleData/ALFP1319F/AL1319evt.csv"
@@ -177,6 +178,38 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                                                                         lineNumber: issueLine.lineIndex)
             }
         }
+    }
+
+    func testFindAndRepairLongLinesWithErrorsForFull514RaceFile() throws {
+        let fileString = try String(contentsOfFile: AL1314racFilePath, encoding: .isoLatin1)
+        var lines = CSVErrorRepair.getLines(fromString: fileString)
+        let fieldTypes = lines.first!.map { fieldName in
+            guard let type = SampleFieldMappings.raceFieldNameToTypes[fieldName] else {
+                fatalError("failed to get field type for \(fieldName)")
+            }
+            return type
+        }
+        let lineIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+        print("init lineIssues: \(lineIssues)")
+        if lineIssues.count > 0 {
+            for issueLine in lineIssues {
+                CSVErrorRepair.repairSequentialShortLines(lines: &lines,
+                                              firstLineIndex: issueLine.lineIndex,
+                                              targetColumnCount: issueLine.expectedColumnCount)
+            }
+            lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+            lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+            let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+            for issueLine in linesWithIssuesAfterSequentialLineRepair {
+                CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+                                                                        targetColumnCount: issueLine.expectedColumnCount,
+                                                                        expectedFieldTypes: fieldTypes,
+                                                                        fileName: "AL1314rac.csv",
+                                                                        lineNumber: issueLine.lineIndex)
+            }
+        }
+        let finalLineIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+        print("final lineIssues: \(finalLineIssues)")
     }
 
     func testGetAllHeaders() async throws {
