@@ -250,6 +250,8 @@ public struct CSVErrorRepair {
         lines.removeAll { $0.count == 1 && $0.first!.isEmpty }
     }
 
+#if os(macOS)
+    @available(macOS 10.10, *)
     public static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
         let url = URL(fileURLWithPath: filePath)
 
@@ -274,6 +276,7 @@ public struct CSVErrorRepair {
             return nil
         }
     }
+#endif
 
     public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let enum1 = FileManager.default
@@ -378,6 +381,8 @@ public struct CSVErrorRepair {
         return fileErrors
     }
 
+    #if os(macOS)
+    @available(macOS 10.13, *)
     public static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> FileIssues {
         return autoreleasepool {
             let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
@@ -413,6 +418,7 @@ public struct CSVErrorRepair {
             }
         }
     }
+    #endif
 }
 
 public enum ParseError: Error {
