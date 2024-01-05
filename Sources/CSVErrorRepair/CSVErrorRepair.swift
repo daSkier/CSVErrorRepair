@@ -251,31 +251,31 @@ public struct CSVErrorRepair {
     }
 
 #if os(macOS)
-    @available(macOS 10.10, *)
-    public static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
-        let url = URL(fileURLWithPath: filePath)
-
-        do {
-            let data = try Data(contentsOf: url)
-            var resultString: NSString?
-
-            var usedLossyConversion: ObjCBool = false
-
-            let detectedEncoding = NSString.stringEncoding(for: data,
-                                                 encodingOptions: nil,
-                                                 convertedString: &resultString,
-                                                 usedLossyConversion: &usedLossyConversion)
-
-            if usedLossyConversion.boolValue {
-                // If a lossy conversion was used, the exact encoding may not be reliable
-                print("Lossy conversion used")
-            }
-            return String.Encoding(rawValue: detectedEncoding)
-        } catch {
-            print("Error reading the file: \(error)")
-            return nil
-        }
-    }
+//    @available(macOS 10.10, *)
+//    public static func detectFileEncoding(atPath filePath: String) -> String.Encoding? {
+//        let url = URL(fileURLWithPath: filePath)
+//
+//        do {
+//            let data = try Data(contentsOf: url)
+//            var resultString: NSString?
+//
+//            var usedLossyConversion: ObjCBool = false
+//
+//            let detectedEncoding = NSString.stringEncoding(for: data,
+//                                                 encodingOptions: nil,
+//                                                 convertedString: &resultString,
+//                                                 usedLossyConversion: &usedLossyConversion)
+//
+//            if usedLossyConversion.boolValue {
+//                // If a lossy conversion was used, the exact encoding may not be reliable
+//                print("Lossy conversion used")
+//            }
+//            return String.Encoding(rawValue: detectedEncoding)
+//        } catch {
+//            print("Error reading the file: \(error)")
+//            return nil
+//        }
+//    }
 #endif
 
     public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
@@ -382,42 +382,42 @@ public struct CSVErrorRepair {
     }
 
     #if os(macOS)
-    @available(macOS 10.13, *)
-    public static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> FileIssues {
-        return autoreleasepool {
-            let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-            if linesWithIssues.count > 0 {
-                for issueLine in linesWithIssues {
-                    CSVErrorRepair.repairSequentialShortLines(lines: &lines,
-                                                  firstLineIndex: issueLine.lineIndex,
-                                                  targetColumnCount: issueLine.expectedColumnCount)
-                }
-                lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
-                lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
-                let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                let fieldTypes = lines.first!.map { fieldName in
-                    guard let type = fieldTypes[fieldName] else {
-                        fatalError("failed to get field type for \(fieldName)")
-                    }
-                    return type
-                }
-                for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                    CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.expectedColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes,
-                                                                                    fileName: url.lastPathComponent,
-                                                                                    lineNumber: issueLine.lineIndex)
-                }
-                let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                if !linesWithIssuesAfterLongLineRepair.isEmpty {
-                    print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
-                }
-                return FileIssues(fileUrl: url, issues: linesWithIssuesAfterLongLineRepair)
-            }else{
-                return FileIssues(fileUrl: url, issues: linesWithIssues)
-            }
-        }
-    }
+//    @available(macOS 10.13, *)
+//    public static func correctErrorsIn(_ lines: inout [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) throws -> FileIssues {
+//        return autoreleasepool {
+//            let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+//            if linesWithIssues.count > 0 {
+//                for issueLine in linesWithIssues {
+//                    CSVErrorRepair.repairSequentialShortLines(lines: &lines,
+//                                                  firstLineIndex: issueLine.lineIndex,
+//                                                  targetColumnCount: issueLine.expectedColumnCount)
+//                }
+//                lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
+//                lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+//                let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+//                let fieldTypes = lines.first!.map { fieldName in
+//                    guard let type = fieldTypes[fieldName] else {
+//                        fatalError("failed to get field type for \(fieldName)")
+//                    }
+//                    return type
+//                }
+//                for issueLine in linesWithIssuesAfterSequentialLineRepair {
+//                    CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
+//                                                                                    targetColumnCount: issueLine.expectedColumnCount,
+//                                                                                    expectedFieldTypes: fieldTypes,
+//                                                                                    fileName: url.lastPathComponent,
+//                                                                                    lineNumber: issueLine.lineIndex)
+//                }
+//                let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+//                if !linesWithIssuesAfterLongLineRepair.isEmpty {
+//                    print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
+//                }
+//                return FileIssues(fileUrl: url, issues: linesWithIssuesAfterLongLineRepair)
+//            }else{
+//                return FileIssues(fileUrl: url, issues: linesWithIssues)
+//            }
+//        }
+//    }
     #endif
 }
 
