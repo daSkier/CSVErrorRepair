@@ -236,7 +236,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
         print("csvItems.count: \(csvItems.count)")
         let filesAndFirstLines = try await csvItems
             .concurrentMap { csvFile -> (lastPathComponent: String, fileType: String, firstLine: [String]) in
-                return try autoreleasepool {
+                return try await Task {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     let lines = CSVErrorRepair.getLines(fromString: fileString)
                     let lastPathComponent = csvFile.deletingPathExtension().lastPathComponent
@@ -245,7 +245,7 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
                         print("found unexpected fis file type: \(fileFisType) for url: \(csvFile)")
                     }
                     return (lastPathComponent: lastPathComponent, fileType: fileFisType, firstLine: lines.first!)
-                }
+                }.value
             }
         let valuesByFileType = filesAndFirstLines.reduce(into: [String : Set<String>]()) { partialResult, fileInfo in
             if partialResult.keys.contains(fileInfo.fileType) {

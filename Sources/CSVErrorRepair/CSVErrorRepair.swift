@@ -292,7 +292,7 @@ public struct CSVErrorRepair {
                 guard let mappingDict = fileToFieldType(csvFile) else {
                     fatalError("failed to get file mapping dict")
                 }
-                return try autoreleasepool {
+                return try await Task {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = CSVErrorRepair.getLines(fromString: fileString)
                     let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
@@ -326,7 +326,7 @@ public struct CSVErrorRepair {
                     }else{
                         return FileIssues(fileUrl: csvFile, issues: linesWithIssues)
                     }
-                }
+                }.value
             }
         return fileErrors
 
@@ -340,7 +340,7 @@ public struct CSVErrorRepair {
                 guard let mappingDict = fileToFieldType(csvFile.0) else {
                     fatalError("failed to get file mapping dict")
                 }
-                return try autoreleasepool {
+                return try await Task {
                     guard let fileString = String(data: csvFile.1, encoding: .isoLatin1) else {
                         throw ParseError.failedToGetStringFromData
                     }
@@ -376,7 +376,7 @@ public struct CSVErrorRepair {
                     }else{
                         return FileIssues(fileUrl: csvFile.0, issues: linesWithIssues)
                     }
-                }
+                }.value
             }
         return fileErrors
     }
