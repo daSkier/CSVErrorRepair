@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct FileIssues {
+public struct FileIssues: Sendable {
     var fileUrl: URL
     var issues: [LineIssue]
 }
