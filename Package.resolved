@@ -1,0 +1,15 @@
+{
+  "originHash" : "be677d2bdf6a2b1da5472feda6f67a1fd3a1d0726b2610c87a110b040f886a65",
+  "pins" : [
+    {
+      "identity" : "collectionconcurrencykit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/JohnSundell/CollectionConcurrencyKit.git",
+      "state" : {
+        "revision" : "b4f23e24b5a1bff301efc5e70871083ca029ff95",
+        "version" : "0.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}
