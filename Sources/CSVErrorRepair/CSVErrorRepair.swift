@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  CSVErrorRepair.swift
+//
 //
 //  Created by Justin on 8/29/23.
 //
@@ -8,13 +8,69 @@
 import Foundation
 import CollectionConcurrencyKit
 
+/// A collection of static methods for detecting and repairing common errors in CSV files.
+///
+/// CSV files sourced from real-world systems often contain two categories of errors:
+/// - **Short lines**: A newline inside a field value split one logical row across multiple physical lines.
+/// - **Long lines**: The column delimiter appeared inside a field value, producing extra columns.
+///
+/// `CSVErrorRepair` operates on parsed line arrays (`[[String]]`) and applies repairs in-place
+/// to minimize memory allocations. Use ``getLines(fromString:lineDelimeter:columnDelimeter:)`` to
+/// parse a CSV string into this format, then call the repair methods as needed.
+///
+/// ## Topics
+///
+/// ### Parsing
+/// - ``getLines(fromString:lineDelimeter:columnDelimeter:)``
+/// - ``getLines(fromData:lineDelimeter:columnDelimeter:encoding:)``
+///
+/// ### Conversion
+/// - ``convertToString(lines:columnDelimeter:lineDelimeter:checkForQuotes:)``
+/// - ``convertToData(lines:columnDelimeter:lineDelimeter:encoding:)``
+///
+/// ### Error Detection
+/// - ``findLinesWithErrors(fromString:)``
+/// - ``findLinesWithIncorrectElementCount(fromLines:)``
+///
+/// ### Repair
+/// - ``findAndRepairLinesWithTooFewElements(_:)``
+/// - ``repairSequentialShortLines(lines:firstLineIndex:targetColumnCount:)``
+/// - ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:targetColumnCount:expectedFieldTypes:fileName:lineNumber:)``
+/// - ``correctErrorsIn(_:forUrl:fieldTypes:)-1lea``
+///
+/// ### Batch Processing
+/// - ``correctErrorsIn(directory:fileFilter:fileToFieldType:)``
+/// - ``correctErrorsIn(files:fileToFieldType:)``
 public struct CSVErrorRepair {
+
+    /// Parses a CSV string into a two-dimensional array of field values.
+    ///
+    /// Each inner array represents one line, with each element being a single field value.
+    /// Newline characters are trimmed from individual lines before splitting by column delimiter.
+    ///
+    /// - Parameters:
+    ///   - inputString: The raw CSV content as a string.
+    ///   - lineDelimeter: The character(s) separating rows. Defaults to `"\n"`.
+    ///   - columnDelimeter: The character(s) separating columns. Defaults to `"\t"`.
+    /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
         inputString.components(separatedBy: lineDelimeter)
             .map { $0.trimmingCharacters(in: .newlines) }
             .map { $0.components(separatedBy: columnDelimeter) }
     }
 
+    /// Parses CSV data into a two-dimensional array of field values.
+    ///
+    /// Converts the raw `Data` to a string using the specified encoding, then delegates to
+    /// ``getLines(fromString:lineDelimeter:columnDelimeter:)``.
+    ///
+    /// - Parameters:
+    ///   - data: The raw CSV content as `Data`.
+    ///   - lineDelimeter: The character(s) separating rows. Defaults to `"\n"`.
+    ///   - columnDelimeter: The character(s) separating columns. Defaults to `"\t"`.
+    ///   - encoding: The string encoding to use when converting data. Defaults to `.isoLatin1`.
+    /// - Throws: ``ParseError/failedToGetStringFromData`` if the data cannot be decoded with the given encoding.
+    /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
         guard let string = String(data: data, encoding: encoding) else {
             throw ParseError.failedToGetStringFromData
@@ -22,6 +78,14 @@ public struct CSVErrorRepair {
         return Self.getLines(fromString: string, lineDelimeter: lineDelimeter, columnDelimeter: columnDelimeter)
     }
 
+    /// Converts a two-dimensional line array back into a single CSV string.
+    ///
+    /// - Parameters:
+    ///   - lines: The parsed line arrays to convert.
+    ///   - columnDelimeter: The character(s) to place between columns. Defaults to `"\t"`.
+    ///   - lineDelimeter: The character(s) to place between rows. Defaults to `"\n"`.
+    ///   - checkForQuotes: When `true`, strips double-quote characters from field values.
+    /// - Returns: A single string containing the reconstructed CSV content.
     public static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", checkForQuotes: Bool = false) -> String {
         lines.map { cells -> String in
             cells.map{ cell in
@@ -34,10 +98,25 @@ public struct CSVErrorRepair {
         }.joined(separator: lineDelimeter)
     }
 
+    /// Converts a two-dimensional line array back into `Data` using the specified encoding.
+    ///
+    /// - Parameters:
+    ///   - lines: The parsed line arrays to convert.
+    ///   - columnDelimeter: The character(s) to place between columns. Defaults to `"\t"`.
+    ///   - lineDelimeter: The character(s) to place between rows. Defaults to `"\n"`.
+    ///   - encoding: The string encoding to use. Defaults to `.isoLatin1`.
+    /// - Returns: The reconstructed CSV as `Data`, or `nil` if encoding fails.
     public static func convertToData(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", encoding: String.Encoding = .isoLatin1) -> Data? {
         return Self.convertToString(lines: lines, columnDelimeter: columnDelimeter, lineDelimeter: lineDelimeter).data(using: encoding)
     }
 
+    /// Parses a CSV string and returns issues for any lines with an incorrect column count.
+    ///
+    /// A convenience method that combines parsing and error detection in one call.
+    /// The expected column count is determined by the first line (header row).
+    ///
+    /// - Parameter inputString: The raw CSV content as a string.
+    /// - Returns: An array of ``LineIssue`` values describing each line with an unexpected column count.
     public static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
         guard let firstLineColumnCount = separatedLines.first?.count else {
@@ -51,6 +130,14 @@ public struct CSVErrorRepair {
         return indicesWithIssue
     }
 
+    /// Finds lines whose column count differs from the first line (header row).
+    ///
+    /// Compares each line's column count against the first line. Lines with a different count
+    /// are returned as issues. A trailing empty line (common in files ending with a carriage return)
+    /// is silently skipped.
+    ///
+    /// - Parameter separatedLines: The parsed CSV line arrays.
+    /// - Returns: An array of ``LineIssue`` values describing each line with an unexpected column count.
     public static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [LineIssue] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
             print("failed to get firstLineColumnCount for provided string")
@@ -68,6 +155,22 @@ public struct CSVErrorRepair {
         return indicesWithIssue
     }
 
+    /// Repairs a line that has too many columns by merging adjacent cells using field-type validation.
+    ///
+    /// The algorithm validates fields from both the start and end of the line against the expected
+    /// field types. Where validation fails, it identifies candidate merge points — positions where
+    /// two adjacent cells should be joined back into a single field. It tries each candidate,
+    /// selects the merge that produces the fewest validation errors, and applies it.
+    ///
+    /// This method handles one extra column per call. For lines with multiple extra columns,
+    /// call this method repeatedly until the line reaches the target count.
+    ///
+    /// - Parameters:
+    ///   - separatedLine: The line to repair, modified in-place.
+    ///   - targetColumnCount: The expected number of columns.
+    ///   - expectedFieldTypes: An ordered array of ``FieldType`` values matching each column.
+    ///   - fileName: The source file name, used for diagnostic output.
+    ///   - lineNumber: The line number in the source file, used for diagnostic output.
     public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
         guard expectedFieldTypes.count == targetColumnCount else {
             print("expectedFieldTypes.count == targetColumnCount in \(#function)")
@@ -135,6 +238,22 @@ public struct CSVErrorRepair {
         }
     }
 
+    /// Validates a line's fields against an array of expected field types, scanning in both directions.
+    ///
+    /// Scans forward from the first field and backward from the last field, checking each value
+    /// against its corresponding ``FieldType``. Scanning stops in each direction at the first
+    /// invalid field. The resulting ``ValidationResultSet`` captures which indices were validated,
+    /// which were invalid, and which had weaker matches (null or unknown string).
+    ///
+    /// This bidirectional approach helps identify the boundary where an extra delimiter caused
+    /// fields to shift, enabling ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:targetColumnCount:expectedFieldTypes:fileName:lineNumber:)``
+    /// to find the best merge point.
+    ///
+    /// - Parameters:
+    ///   - separatedLine: The fields of the line to validate.
+    ///   - againstExpectedFieldTypes: The expected ``FieldType`` for each column position.
+    ///   - targetColumnCount: The expected number of columns (used to calculate the backward offset).
+    /// - Returns: A ``ValidationResultSet`` with the results of both forward and backward scans.
     public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
         let lineIndices = separatedLine.indices
 
@@ -196,6 +315,21 @@ public struct CSVErrorRepair {
         return result
     }
 
+    /// Merges consecutive short lines starting at the given index until the target column count is reached.
+    ///
+    /// When a field value contains a newline, the CSV row gets split across multiple physical lines.
+    /// This method detects that pattern and merges the fragments back together. It concatenates the
+    /// last field of the current line with the first field of the next line (repairing the split),
+    /// then appends the remaining fields. The process repeats with subsequent lines until the merged
+    /// line reaches the `targetColumnCount`.
+    ///
+    /// Merged source lines are emptied so they can be removed afterward with
+    /// `lines.removeAll { $0.isEmpty }`.
+    ///
+    /// - Parameters:
+    ///   - lines: The full array of parsed lines, modified in-place.
+    ///   - firstLineIndex: The index of the first short line to begin merging from.
+    ///   - targetColumnCount: The expected number of columns for a complete line.
     public static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
         var linesAhead = 0
         repeat {
@@ -232,6 +366,14 @@ public struct CSVErrorRepair {
         } while lines[firstLineIndex].indices.count < targetColumnCount
     }
 
+    /// Finds all short lines and repairs them by merging consecutive short lines together.
+    ///
+    /// A convenience method that combines ``findLinesWithIncorrectElementCount(fromLines:)`` with
+    /// ``repairSequentialShortLines(lines:firstLineIndex:targetColumnCount:)`` for each pair of
+    /// consecutive short lines. After merging, removes any empty or single-empty-element lines
+    /// left behind by the merge process.
+    ///
+    /// - Parameter lines: The full array of parsed lines, modified in-place.
     public static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
         let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines)
         print("lines with errors: \(linesWithErrors.count)")
@@ -278,6 +420,21 @@ public struct CSVErrorRepair {
 //    }
 #endif
 
+    /// Reads all CSV files from a directory, applies both short-line and long-line repairs concurrently, and returns any unresolved issues.
+    ///
+    /// Files are enumerated from the given directory (skipping hidden files), filtered by the
+    /// `fileFilter` closure, then processed in parallel. For each file, the method:
+    /// 1. Parses the file content using ISO Latin 1 encoding.
+    /// 2. Merges consecutive short lines.
+    /// 3. Repairs long lines using field-type validation from the `fileToFieldType` mapping.
+    ///
+    /// - Parameters:
+    ///   - directory: The directory URL to scan for CSV files.
+    ///   - fileFilter: A closure that returns `true` for files that should be processed.
+    ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
+    ///     Return `nil` for files that should not have field-type-based repair applied.
+    /// - Throws: ``ParseError`` if file data cannot be decoded.
+    /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
     public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let enum1 = FileManager.default
             .enumerator(at: directory,
@@ -332,6 +489,17 @@ public struct CSVErrorRepair {
 
     }
 
+    /// Applies both short-line and long-line repairs to pre-loaded CSV file data concurrently, and returns any unresolved issues.
+    ///
+    /// Same repair pipeline as ``correctErrorsIn(directory:fileFilter:fileToFieldType:)`` but
+    /// operates on an array of `(URL, Data)` tuples instead of reading from disk. Only entries
+    /// whose URL ends with `"csv"` are processed.
+    ///
+    /// - Parameters:
+    ///   - files: An array of `(URL, Data)` tuples representing CSV files.
+    ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
+    /// - Throws: ``ParseError/failedToGetStringFromData`` if file data cannot be decoded.
+    /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
     public static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }
         print("csvItems.count: \(csvData.count)")
@@ -420,6 +588,21 @@ public struct CSVErrorRepair {
 //    }
     #endif
 
+    /// Applies both short-line and long-line repairs to a single file's parsed lines and returns the corrected result.
+    ///
+    /// This is the primary single-file repair method. It:
+    /// 1. Merges consecutive short lines to fix rows split by embedded newlines.
+    /// 2. Removes empty lines left behind by the merge process.
+    /// 3. Uses field-type validation to repair lines that have too many columns.
+    ///
+    /// Unlike the batch methods, this returns the repaired lines along with any unresolved issues,
+    /// allowing you to inspect or further process the result.
+    ///
+    /// - Parameters:
+    ///   - inputLines: The parsed CSV lines to repair. Not modified — a copy is made internally.
+    ///   - url: The source file URL, used for diagnostic output and to populate ``FileIssues/fileUrl``.
+    ///   - fieldTypes: A dictionary mapping column header names to their expected ``FieldType``.
+    /// - Returns: A tuple of the repaired line arrays and a ``FileIssues`` listing any lines that remain incorrect.
     public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) async -> (resultLines: [[String]], issues: FileIssues) {
         return await Task {
             var lines = inputLines
@@ -458,7 +641,10 @@ public struct CSVErrorRepair {
     }
 }
 
+/// Errors that can occur during CSV parsing.
 public enum ParseError: Error {
+    /// The validated index array was unexpectedly empty when attempting to retrieve its last element.
     case failedToGetLastItemFromValidatedIndicyArray
+    /// The provided `Data` could not be converted to a `String` using the specified encoding.
     case failedToGetStringFromData
 }
