@@ -6,7 +6,7 @@ This document catalogs known logic bugs, crash risks, thread-safety issues, perf
 
 ## Logic Bugs
 
-### 1. `date(nullable:)` ignores the `nullable` parameter
+### ~~1. `date(nullable:)` ignores the `nullable` parameter~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/FieldType.swift`, `validate(inputString:)` — `.date` case
 
@@ -27,7 +27,7 @@ case .date(let nullable):
 
 ---
 
-### 2. `string` validation ignores `contains` when `expectedLength` is set
+### ~~2. `string` validation ignores `contains` when `expectedLength` is set~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/FieldType.swift`, `validate(inputString:)` — `.string` case
 
@@ -49,7 +49,7 @@ This flattened structure also resolves issues 3 and eliminates the nested `if le
 
 ---
 
-### 3. `string` with no constraints returns `.invalid`
+### ~~3. `string` with no constraints returns `.invalid`~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/FieldType.swift`, `validate(inputString:)` — `.string` case, bottom of the chain
 
@@ -394,8 +394,8 @@ public static func validate(
 
 The items above are independent and can be tackled in any order. However, the following sequence minimizes risk and maximizes value:
 
-1. **Issue 8** (DateFormatter thread safety) — active data-race bug in concurrent code paths.
-2. **Issues 1–3** (FieldType validation bugs) — logic bugs that silently produce wrong results.
+1. ~~**Issues 1–3** (FieldType validation bugs) — RESOLVED~~
+2. **Issue 8** (DateFormatter thread safety) — active data-race bug in concurrent code paths.
 3. **Issue 6** (bounds check) — potential crash on real-world input.
 4. **Issue 7** (fatalError → throw) — prevents crashes in batch processing.
 5. **Issue 16** (typed throws) — adopt typed throws after issue 7 removes all `fatalError` paths.

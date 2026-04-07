@@ -59,6 +59,9 @@ public enum FieldType: Sendable, Equatable, Hashable {
 
     /// A constrained string field with optional length, prefix, and substring checks.
     ///
+    /// All non-nil constraints are checked independently — a value must satisfy every
+    /// constraint that is set. When all constraints are nil, any non-empty string is accepted.
+    ///
     /// - Parameters:
     ///   - nullable: Whether an empty string is accepted as a null value.
     ///   - expectedLength: If non-nil, the string must have exactly this many characters.
@@ -121,39 +124,27 @@ extension FieldType {
         case .string(let nullable, let expectedLength, let startsWith, let contains):
             if input.isEmpty {
                 return nullable ? .null : .invalid
-            }else if let expectedLength {
-                if input.count == expectedLength {
-                    if let startsWith {
-                        return input.hasPrefix(startsWith) ? .valid : .invalid
-                    } else {
-                        return .valid
-                    }
-                } else {
-                    return .invalid
-                }
-            }else if let startsWith {
-                if let contains {
-                    return input.hasPrefix(startsWith) && input.contains(contains) ? .valid : .invalid
-                }else{
-                    return input.hasPrefix(startsWith) ? .valid : .invalid
-                }
-            }else if let contains {
-                if input.isEmpty {
-                    return .null
-                }else{
-                    return input.contains(contains) ? .valid : .null
-                }
-            }else {
-                print("failed to find expectedLength or startsWith")
+            }
+            if let expectedLength, input.count != expectedLength {
                 return .invalid
             }
+            if let startsWith, !input.hasPrefix(startsWith) {
+                return .invalid
+            }
+            if let contains, !input.contains(contains) {
+                return .invalid
+            }
+            return .valid
         case .unknownString(let nullable):
             if input.isEmpty {
                 return nullable ? .null : .invalid
             }else {
                 return .unknownString
             }
-        case .date:
+        case .date(let nullable):
+            if input.isEmpty {
+                return nullable ? .null : .invalid
+            }
             return dateWithDashesFormatter.date(from: input) != nil ? .valid : .invalid
         case .dateTime:
             return dateSpaceTimeFormatter.date(from: input) != nil ? .valid : .invalid
@@ -164,7 +155,7 @@ extension FieldType {
 }
 
 /// The result of validating a single field value against a ``FieldType``.
-enum ValidationResult {
+enum ValidationResult: Equatable {
     /// The value fully satisfies the field type's constraints.
     case valid
     /// The value is empty and the field type allows nulls.
