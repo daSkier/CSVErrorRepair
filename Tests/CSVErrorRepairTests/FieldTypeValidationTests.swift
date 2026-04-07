@@ -222,6 +222,42 @@ final class FieldTypeValidationTests: XCTestCase {
         XCTAssertEqual(field.validate(inputString: "not empty"), .invalid)
     }
 
+    // MARK: - Date Thread Safety / Regex (Issue 8)
+
+    /// Issue 8: Date validation now uses regex instead of DateFormatter.
+    /// Verify that slash-separated dates (which DateFormatter was lenient about) are rejected.
+    func testDateRejectsSlashSeparatedFormat() {
+        let field = FieldType.date(nullable: false)
+        XCTAssertEqual(field.validate(inputString: "2023/09/04"), .invalid)
+    }
+
+    /// Issue 8: Date regex should reject partial dates.
+    func testDateRejectsPartialDate() {
+        let field = FieldType.date(nullable: false)
+        XCTAssertEqual(field.validate(inputString: "2023-09"), .invalid)
+        XCTAssertEqual(field.validate(inputString: "2023"), .invalid)
+    }
+
+    /// Issue 8: Date regex should reject dates with trailing content.
+    func testDateRejectsTrailingContent() {
+        let field = FieldType.date(nullable: false)
+        XCTAssertEqual(field.validate(inputString: "2023-09-04 extra"), .invalid)
+        XCTAssertEqual(field.validate(inputString: "2023-09-04T12:00"), .invalid)
+    }
+
+    /// Issue 8: DateTime validation now uses regex instead of DateFormatter.
+    func testDateTimeRejectsDateOnly() {
+        let field = FieldType.dateTime
+        XCTAssertEqual(field.validate(inputString: "2023-09-04"), .invalid)
+    }
+
+    /// Issue 8: DateTime regex should reject trailing content.
+    func testDateTimeRejectsTrailingContent() {
+        let field = FieldType.dateTime
+        XCTAssertEqual(field.validate(inputString: "2023-09-04 12:30:00.000"), .invalid)
+        XCTAssertEqual(field.validate(inputString: "2023-09-04 12:30:00Z"), .invalid)
+    }
+
     // MARK: - Edge Cases: Nullable + Constraint Combinations
 
     /// Integer: nullable guard should fire before expectedValue check.
