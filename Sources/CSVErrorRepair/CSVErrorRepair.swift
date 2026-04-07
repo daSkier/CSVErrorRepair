@@ -424,6 +424,69 @@ public struct CSVErrorRepair {
 //    }
 #endif
 
+    /// Runs the full repair pipeline on parsed CSV lines: merges short lines,
+    /// removes empty lines left behind by the merge, then repairs lines that have
+    /// too many columns using field-type validation.
+    ///
+    /// This is the single authoritative implementation of the repair sequence.
+    /// All public `correctErrorsIn` methods delegate to this helper.
+    ///
+    /// - Parameters:
+    ///   - lines: The parsed CSV lines to repair, modified in-place.
+    ///   - fieldTypeMapping: A dictionary mapping column header names to their expected ``FieldType``.
+    ///   - fileName: The source file name, used for diagnostic output.
+    ///   - fileUrl: The source file URL, used for error reporting.
+    /// - Throws: ``ParseError/emptyFileAfterCleanup(_:)`` if all lines are removed during cleanup.
+    ///   ``ParseError/unknownFieldName(_:_:)`` if a header column has no entry in the mapping.
+    /// - Returns: An array of ``LineIssue`` values for any lines that remain incorrect after repair.
+    private static func repairLines(
+        _ lines: inout [[String]],
+        fieldTypeMapping: [String: FieldType],
+        fileName: String,
+        fileUrl: URL
+    ) throws -> [LineIssue] {
+        let linesWithIssues = findLinesWithIncorrectElementCount(fromLines: lines)
+        guard !linesWithIssues.isEmpty else { return linesWithIssues }
+
+        // Step 1: Merge consecutive short lines (rows split by embedded newlines)
+        for issueLine in linesWithIssues {
+            repairSequentialShortLines(lines: &lines,
+                                       firstLineIndex: issueLine.lineIndex,
+                                       targetColumnCount: issueLine.expectedColumnCount)
+        }
+
+        // Step 2: Remove empty lines and single-empty-element lines left behind by the
+        // merge process — prevents issues with files that end with \r or \n
+        lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
+
+        // Step 3: Repair lines that have too many columns using field-type validation
+        let linesWithIssuesAfterSequentialLineRepair = findLinesWithIncorrectElementCount(fromLines: lines)
+        guard let header = lines.first else {
+            throw ParseError.emptyFileAfterCleanup(fileUrl)
+        }
+        let orderedFieldTypes = try header.map { fieldName -> FieldType in
+            guard let type = fieldTypeMapping[fieldName] else {
+                throw ParseError.unknownFieldName(fieldName, fileUrl)
+            }
+            return type
+        }
+        for issueLine in linesWithIssuesAfterSequentialLineRepair {
+            repairLinesWithMoreColumnsBasedOnExpectedFields(
+                forLine: &lines[issueLine.lineIndex],
+                targetColumnCount: issueLine.expectedColumnCount,
+                expectedFieldTypes: orderedFieldTypes,
+                fileName: fileName,
+                lineNumber: issueLine.lineIndex)
+        }
+
+        // Step 4: Report any lines still incorrect after both repair passes
+        let remainingIssues = findLinesWithIncorrectElementCount(fromLines: lines)
+        if !remainingIssues.isEmpty {
+            print("linesWithIssuesAfterLongLineRepair: \(remainingIssues)")
+        }
+        return remainingIssues
+    }
+
     /// Reads all CSV files from a directory, applies both short-line and long-line repairs concurrently, and returns any unresolved issues.
     ///
     /// Files are enumerated from the given directory (skipping hidden files), filtered by the
@@ -461,41 +524,12 @@ public struct CSVErrorRepair {
                 return try await Task {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
                     var lines = CSVErrorRepair.getLines(fromString: fileString)
-                    let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                    if linesWithIssues.count > 0 {
-                        for issueLine in linesWithIssues {
-                            CSVErrorRepair.repairSequentialShortLines(lines: &lines,
-                                                          firstLineIndex: issueLine.lineIndex,
-                                                          targetColumnCount: issueLine.expectedColumnCount)
-                        }
-                        // Remove empty lines and single-empty-element lines left behind by the
-                        // merge process — prevents issues with files that end with \r or \n
-                        lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
-                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        guard let header = lines.first else {
-                            throw ParseError.emptyFileAfterCleanup(csvFile)
-                        }
-                        let fieldTypes = try header.map { fieldName -> FieldType in
-                            guard let type = mappingDict[fieldName] else {
-                                throw ParseError.unknownFieldName(fieldName, csvFile)
-                            }
-                            return type
-                        }
-                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.expectedColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes,
-                                                                                    fileName: csvFile.lastPathComponent,
-                                                                                    lineNumber: issueLine.lineIndex)
-                        }
-                        let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
-                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
-                        }
-                        return FileIssues(fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
-                    } else {
-                        return FileIssues(fileUrl: csvFile, issues: linesWithIssues)
-                    }
+                    let remainingIssues = try CSVErrorRepair.repairLines(
+                        &lines,
+                        fieldTypeMapping: mappingDict,
+                        fileName: csvFile.lastPathComponent,
+                        fileUrl: csvFile)
+                    return FileIssues(fileUrl: csvFile, issues: remainingIssues)
                 }.value
             }
         return fileErrors
@@ -526,41 +560,12 @@ public struct CSVErrorRepair {
                         throw ParseError.failedToGetStringFromData
                     }
                     var lines = CSVErrorRepair.getLines(fromString: fileString)
-                    let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                    if linesWithIssues.count > 0 {
-                        for issueLine in linesWithIssues {
-                            CSVErrorRepair.repairSequentialShortLines(lines: &lines,
-                                                          firstLineIndex: issueLine.lineIndex,
-                                                          targetColumnCount: issueLine.expectedColumnCount)
-                        }
-                        // Remove empty lines and single-empty-element lines left behind by the
-                        // merge process — prevents issues with files that end with \r or \n
-                        lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
-                        let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        guard let header = lines.first else {
-                            throw ParseError.emptyFileAfterCleanup(csvFile.0)
-                        }
-                        let fieldTypes = try header.map { fieldName -> FieldType in
-                            guard let type = mappingDict[fieldName] else {
-                                throw ParseError.unknownFieldName(fieldName, csvFile.0)
-                            }
-                            return type
-                        }
-                        for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                            CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.expectedColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes,
-                                                                                    fileName: csvFile.0.lastPathComponent,
-                                                                                    lineNumber: issueLine.lineIndex)
-                        }
-                        let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        if !linesWithIssuesAfterLongLineRepair.isEmpty {
-                            print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
-                        }
-                        return FileIssues(fileUrl: csvFile.0, issues: linesWithIssuesAfterLongLineRepair)
-                    } else {
-                        return FileIssues(fileUrl: csvFile.0, issues: linesWithIssues)
-                    }
+                    let remainingIssues = try CSVErrorRepair.repairLines(
+                        &lines,
+                        fieldTypeMapping: mappingDict,
+                        fileName: csvFile.0.lastPathComponent,
+                        fileUrl: csvFile.0)
+                    return FileIssues(fileUrl: csvFile.0, issues: remainingIssues)
                 }.value
             }
         return fileErrors
@@ -625,41 +630,12 @@ public struct CSVErrorRepair {
     public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) async throws -> (resultLines: [[String]], issues: FileIssues) {
         return try await Task {
             var lines = inputLines
-            let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-            if linesWithIssues.count > 0 {
-                for issueLine in linesWithIssues {
-                    CSVErrorRepair.repairSequentialShortLines(lines: &lines,
-                                                  firstLineIndex: issueLine.lineIndex,
-                                                  targetColumnCount: issueLine.expectedColumnCount)
-                }
-                // Remove empty lines and single-empty-element lines left behind by the
-                // merge process — prevents issues with files that end with \r or \n
-                lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
-                let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                guard let header = lines.first else {
-                    throw ParseError.emptyFileAfterCleanup(url)
-                }
-                let orderedFieldTypes = try header.map { fieldName -> FieldType in
-                    guard let type = fieldTypes[fieldName] else {
-                        throw ParseError.unknownFieldName(fieldName, url)
-                    }
-                    return type
-                }
-                for issueLine in linesWithIssuesAfterSequentialLineRepair {
-                    CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                                    targetColumnCount: issueLine.expectedColumnCount,
-                                                                                    expectedFieldTypes: orderedFieldTypes,
-                                                                                    fileName: url.lastPathComponent,
-                                                                                    lineNumber: issueLine.lineIndex)
-                }
-                let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                if !linesWithIssuesAfterLongLineRepair.isEmpty {
-                    print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
-                }
-                return (lines, FileIssues(fileUrl: url, issues: linesWithIssuesAfterLongLineRepair))
-            } else {
-                return (lines, FileIssues(fileUrl: url, issues: linesWithIssues))
-            }
+            let remainingIssues = try CSVErrorRepair.repairLines(
+                &lines,
+                fieldTypeMapping: fieldTypes,
+                fileName: url.lastPathComponent,
+                fileUrl: url)
+            return (lines, FileIssues(fileUrl: url, issues: remainingIssues))
         }.value
     }
 }

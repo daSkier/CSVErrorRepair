@@ -288,50 +288,19 @@ lines.map { cells -> String in
 
 ## Maintainability
 
-### 15. Repair pipeline is duplicated three times
+### ~~15. Repair pipeline is duplicated three times~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`
 
-**Problem:** The full repair sequence (find issues → merge short lines → remove empties → find remaining → build field type array → repair long lines → find remaining) is copy-pasted across three methods:
+**Problem:** The full repair sequence (find issues → merge short lines → remove empties → find remaining → build field type array → repair long lines → find remaining) was copy-pasted across three methods:
 
 - `correctErrorsIn(directory:fileFilter:fileToFieldType:)`
 - `correctErrorsIn(files:fileToFieldType:)`
 - `correctErrorsIn(_:forUrl:fieldTypes:)`
 
-Any bug fix must be applied in all three places, and they can easily drift out of sync.
+Any bug fix had to be applied in all three places, and they could easily drift out of sync.
 
-**Fix:** Extract the shared pipeline into a private static helper:
-
-```swift
-private static func repairLines(_ lines: inout [[String]], fieldTypes: [String: FieldType], fileName: String) -> [LineIssue] {
-    let linesWithIssues = findLinesWithIncorrectElementCount(fromLines: lines)
-    guard !linesWithIssues.isEmpty else { return linesWithIssues }
-
-    for issueLine in linesWithIssues {
-        repairSequentialShortLines(lines: &lines,
-                                   firstLineIndex: issueLine.lineIndex,
-                                   targetColumnCount: issueLine.expectedColumnCount)
-    }
-    lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
-
-    let remainingIssues = findLinesWithIncorrectElementCount(fromLines: lines)
-    guard let header = lines.first else { return remainingIssues }
-
-    let orderedFieldTypes = header.map { fieldTypes[$0]! }
-    for issueLine in remainingIssues {
-        repairLinesWithMoreColumnsBasedOnExpectedFields(
-            forLine: &lines[issueLine.lineIndex],
-            targetColumnCount: issueLine.expectedColumnCount,
-            expectedFieldTypes: orderedFieldTypes,
-            fileName: fileName,
-            lineNumber: issueLine.lineIndex)
-    }
-
-    return findLinesWithIncorrectElementCount(fromLines: lines)
-}
-```
-
-Then each public method delegates to this helper, reducing each to a few lines.
+**Fix:** Extracted the shared pipeline into `private static func repairLines(_:fieldTypeMapping:fileName:fileUrl:) throws -> [LineIssue]`. All three public methods now delegate to this helper, reducing each to a few lines. Future pipeline changes only need to be made in one place.
 
 ---
 
@@ -396,7 +365,7 @@ The items above are independent and can be tackled in any order. However, the fo
 3. ~~**Issue 6** (bounds check) — RESOLVED~~
 4. ~~**Issue 7** (fatalError → throw) — RESOLVED with new ParseError cases~~
 5. **Issue 16** (typed throws) — adopt typed throws now that issue 7 has removed all `fatalError` paths.
-6. **Issue 15** (extract repair helper) — reduces duplication so subsequent fixes apply everywhere.
+6. ~~**Issue 15** (extract repair helper) — RESOLVED~~
 7. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
 8. **Issues 4–5** (consistency / messaging) — minor correctness.
 9. **Issues 9–14** (performance) — optimizations, impact scales with file size and column count.
