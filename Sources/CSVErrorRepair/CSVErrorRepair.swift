@@ -54,9 +54,9 @@ public struct CSVErrorRepair {
     ///   - columnDelimeter: The character(s) separating columns. Defaults to `"\t"`.
     /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
-        inputString.components(separatedBy: lineDelimeter)
-            .map { $0.trimmingCharacters(in: .newlines) }
-            .map { $0.components(separatedBy: columnDelimeter) }
+        inputString.components(separatedBy: lineDelimeter).map {
+            $0.trimmingCharacters(in: .newlines).components(separatedBy: columnDelimeter)
+        }
     }
 
     /// Parses CSV data into a two-dimensional array of field values.
@@ -89,13 +89,13 @@ public struct CSVErrorRepair {
     /// - Returns: A single string containing the reconstructed CSV content.
     public static func convertToString(lines: [[String]], columnDelimeter: String = "\t", lineDelimeter: String = "\n", checkForQuotes: Bool = false) -> String {
         lines.map { cells -> String in
-            cells.map{ cell in
-                if cell.contains("\"") && checkForQuotes {
-                    return cell.replacingOccurrences(of: "\"", with: "")
-                }else{
-                    return cell
-                }
-            }.joined(separator: columnDelimeter)
+            if checkForQuotes {
+                return cells.map { cell in
+                    cell.contains("\"") ? cell.replacingOccurrences(of: "\"", with: "") : cell
+                }.joined(separator: columnDelimeter)
+            } else {
+                return cells.joined(separator: columnDelimeter)
+            }
         }.joined(separator: lineDelimeter)
     }
 

@@ -74,7 +74,7 @@ private enum BenchmarkData {
 
 final class GetLinesPerformanceTests: XCTestCase {
 
-    private let largeCSV = BenchmarkData.largeCSV()
+    private let largeCSV = BenchmarkData.largeCSV(rowCount: 100_000, colCount: 40)
 
     func testGetLinesPerformance() {
         measure {
@@ -88,7 +88,7 @@ final class GetLinesPerformanceTests: XCTestCase {
 final class ConvertToStringPerformanceTests: XCTestCase {
 
     private let parsedLines: [[String]] = {
-        CSVErrorRepair.getLines(fromString: BenchmarkData.largeCSV())
+        CSVErrorRepair.getLines(fromString: BenchmarkData.largeCSV(rowCount: 100_000, colCount: 40))
     }()
 
     /// Default path (checkForQuotes: false) — this is the hot path being optimized.
@@ -118,7 +118,7 @@ final class RepairLongLinePerformanceTests: XCTestCase {
         let targetColumnCount = fieldTypes.count
 
         measure {
-            for _ in 0..<100 {
+            for _ in 0..<500 {
                 var line = benchmarkData.line
                 CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(
                     forLine: &line,
