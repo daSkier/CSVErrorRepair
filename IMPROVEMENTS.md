@@ -169,7 +169,7 @@ This is inherently thread-safe, faster, eliminates the global mutable state, and
 
 ## Performance
 
-### 9. `repairLinesWithMoreColumnsBasedOnExpectedFields` stores unused array copies
+### ~~9. `repairLinesWithMoreColumnsBasedOnExpectedFields` stores unused array copies~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `repairLinesWithMoreColumnsBasedOnExpectedFields`
 
@@ -193,7 +193,7 @@ for mergeIndex in lastIndicies {
 
 ---
 
-### 10. Redundant sort before min
+### ~~10. Redundant sort before min~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `repairLinesWithMoreColumnsBasedOnExpectedFields`
 
@@ -211,7 +211,7 @@ if let minErrors {
 
 ---
 
-### 11. `mergedLastIndices()` returns duplicate indices
+### ~~11. `mergedLastIndices()` returns duplicate indices~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/ValidationResultSet.swift`, `mergedLastIndices()`
 
@@ -231,7 +231,7 @@ func mergedLastIndices() throws -> [Int] {
 
 ---
 
-### 12. Two `removeAll` passes where one would suffice
+### ~~12. Two `removeAll` passes where one would suffice~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift` — appears in `findAndRepairLinesWithTooFewElements`, `correctErrorsIn(directory:...)`, `correctErrorsIn(files:...)`, and `correctErrorsIn(_:forUrl:fieldTypes:)`
 
@@ -250,7 +250,7 @@ lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
 
 ---
 
-### 13. `getLines` uses two `.map` passes creating an intermediate array
+### ~~13. `getLines` uses two `.map` passes creating an intermediate array~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `getLines(fromString:...)`
 
@@ -266,7 +266,7 @@ inputString.components(separatedBy: lineDelimeter).map {
 
 ---
 
-### 14. `convertToString` inner map runs even when `checkForQuotes` is `false`
+### ~~14. `convertToString` inner map runs even when `checkForQuotes` is `false`~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `convertToString`
 
@@ -322,7 +322,7 @@ Any bug fix had to be applied in all three places, and they could easily drift o
 
 ---
 
-### 17. Derive `targetColumnCount` from `expectedFieldTypes.count`
+### ~~17. Derive `targetColumnCount` from `expectedFieldTypes.count`~~ (RESOLVED)
 
 **Files:** `Sources/CSVErrorRepair/CSVErrorRepair.swift` — `repairLinesWithMoreColumnsBasedOnExpectedFields` and `validate(separatedLine:againstExpectedFieldTypes:targetColumnCount:)`
 
@@ -365,5 +365,5 @@ The items above are independent and can be tackled in any order. However, the fo
 5. ~~**Issue 15** (extract repair helper) — RESOLVED~~
 6. ~~**Issues 4–5** (consistency / messaging) — RESOLVED~~
 7. **Issue 16** (typed throws) — DEFERRED due to CollectionConcurrencyKit and Task limitations.
-8. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
-9. **Issues 9–14** (performance) — optimizations, impact scales with file size and column count.
+8. ~~**Issue 17** (derive targetColumnCount) — RESOLVED. Old signatures deprecated, new ones derive count from array.~~
+9. ~~**Issues 9–14** (performance) — RESOLVED. Issue 12 was applied as part of issue 7.~~

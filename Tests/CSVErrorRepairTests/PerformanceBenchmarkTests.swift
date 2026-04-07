@@ -115,14 +115,12 @@ final class RepairLongLinePerformanceTests: XCTestCase {
     /// Benchmarks the full repair path: validate → mergedLastIndices → merge candidates → pick best.
     func testRepairLongLinePerformance() {
         let fieldTypes = benchmarkData.fieldTypes
-        let targetColumnCount = fieldTypes.count
 
         measure {
             for _ in 0..<500 {
                 var line = benchmarkData.line
                 CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(
                     forLine: &line,
-                    targetColumnCount: targetColumnCount,
                     expectedFieldTypes: fieldTypes,
                     fileName: "benchmark",
                     lineNumber: 0)

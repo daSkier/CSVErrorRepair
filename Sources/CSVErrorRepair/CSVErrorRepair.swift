@@ -35,7 +35,7 @@ import CollectionConcurrencyKit
 /// ### Repair
 /// - ``findAndRepairLinesWithTooFewElements(_:)``
 /// - ``repairSequentialShortLines(lines:firstLineIndex:targetColumnCount:)``
-/// - ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:targetColumnCount:expectedFieldTypes:fileName:lineNumber:)``
+/// - ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:expectedFieldTypes:fileName:lineNumber:)``
 /// - ``correctErrorsIn(_:forUrl:fieldTypes:)-1lea``
 ///
 /// ### Batch Processing
@@ -161,25 +161,24 @@ public struct CSVErrorRepair {
     ///
     /// - Parameters:
     ///   - separatedLine: The line to repair, modified in-place.
-    ///   - targetColumnCount: The expected number of columns. Must equal `expectedFieldTypes.count`.
-    ///     In a future version this parameter could be removed and derived from the field types array.
     ///   - expectedFieldTypes: An ordered array of ``FieldType`` values matching each column.
+    ///     The expected column count is derived from `expectedFieldTypes.count`.
     ///   - fileName: The source file name, used for diagnostic output.
     ///   - lineNumber: The line number in the source file, used for diagnostic output.
-    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
-        guard expectedFieldTypes.count == targetColumnCount else {
-            print("expectedFieldTypes.count (\(expectedFieldTypes.count)) != targetColumnCount (\(targetColumnCount)) in \(#function)")
-            return
-        }
+    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
         let fieldCheck = Self.validate(separatedLine: separatedLine,
-                                      againstExpectedFieldTypes: expectedFieldTypes,
-                                      targetColumnCount: targetColumnCount)
+                                      againstExpectedFieldTypes: expectedFieldTypes)
 
         do {
             let lastIndicies = try fieldCheck.mergedLastIndices()
-            let swagBestIndex = lastIndicies[1]
+            // Prefer the second index as a tiebreaker when multiple merge points
+            // have equal error counts; fall back to the first if deduplication
+            // reduced the array to a single element.
+            let swagBestIndex = lastIndicies.count > 1 ? lastIndicies[1] : lastIndicies[0]
             
-            var mergeResults: [(mergeIndex: Int, resultLine: [String], invalidIndicesForward: [Int], invalidIndicesCount: Int)] = []
+            // Only store the merge index and error count — the full result line
+            // and invalid-indices array are not needed after validation.
+            var mergeResults: [(mergeIndex: Int, invalidIndicesCount: Int)] = []
 
             for mergeIndex in lastIndicies {
                 //TODO: is it better to step one cell further forward
@@ -188,21 +187,17 @@ public struct CSVErrorRepair {
                 mergedLine.remove(at: mergeIndex+1)
 
                 let postMergeValidation = Self.validate(separatedLine: mergedLine,
-                                                   againstExpectedFieldTypes: expectedFieldTypes,
-                                                   targetColumnCount: targetColumnCount)
+                                                   againstExpectedFieldTypes: expectedFieldTypes)
                 mergeResults.append((mergeIndex: mergeIndex,
-                                     resultLine: mergedLine,
-                                     invalidIndicesForward: postMergeValidation.invalidIndiciesForward,
-                                     invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count
-                                    ))
+                                     invalidIndicesCount: postMergeValidation.invalidIndiciesForward.count))
             }
-            let finalMergeResults = mergeResults.sorted { $0.invalidIndicesCount < $1.invalidIndicesCount }
-            let minErrors = finalMergeResults
+            // Use .min directly instead of sorting — only the minimum error count is needed.
+            let minErrors = mergeResults
                 .min { $0.invalidIndicesCount < $1.invalidIndicesCount }
                 .map { $0.invalidIndicesCount }
             if let minErrors {
                 let bestMergeIndex: Int = {
-                    let minErrorResults = finalMergeResults.filter { $0.invalidIndicesCount == minErrors }
+                    let minErrorResults = mergeResults.filter { $0.invalidIndicesCount == minErrors }
                     if minErrorResults.count == 1 {
                         return minErrorResults.first!.mergeIndex
                     }else if minErrorResults.count > 1 {
@@ -241,16 +236,16 @@ public struct CSVErrorRepair {
     /// which were invalid, and which had weaker matches (null or unknown string).
     ///
     /// This bidirectional approach helps identify the boundary where an extra delimiter caused
-    /// fields to shift, enabling ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:targetColumnCount:expectedFieldTypes:fileName:lineNumber:)``
+    /// fields to shift, enabling ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:expectedFieldTypes:fileName:lineNumber:)``
     /// to find the best merge point.
     ///
     /// - Parameters:
     ///   - separatedLine: The fields of the line to validate.
     ///   - againstExpectedFieldTypes: The expected ``FieldType`` for each column position.
-    ///   - targetColumnCount: The expected number of columns (used to calculate the backward scan offset).
-    ///     In a future version this could be derived from `againstExpectedFieldTypes.count`.
+    ///     The expected column count is derived from `againstExpectedFieldTypes.count`.
     /// - Returns: A ``ValidationResultSet`` with the results of both forward and backward scans.
-    public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
+    public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType]) -> ValidationResultSet {
+        let targetColumnCount = againstExpectedFieldTypes.count
         let lineIndices = separatedLine.indices
 
         var result = ValidationResultSet(validatedIndicesForward: [],
@@ -309,6 +304,26 @@ public struct CSVErrorRepair {
             }
         }
         return result
+    }
+
+    // MARK: - Deprecated overloads
+
+    /// Validates a CSV line's fields from both directions against the expected field types.
+    ///
+    /// - Deprecated: Use ``validate(separatedLine:againstExpectedFieldTypes:)`` instead.
+    ///   The `targetColumnCount` parameter is now derived from `againstExpectedFieldTypes.count`.
+    @available(*, deprecated, renamed: "validate(separatedLine:againstExpectedFieldTypes:)")
+    public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
+        validate(separatedLine: separatedLine, againstExpectedFieldTypes: againstExpectedFieldTypes)
+    }
+
+    /// Attempts to repair a line that has one extra column by merging two adjacent fields.
+    ///
+    /// - Deprecated: Use ``repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:expectedFieldTypes:fileName:lineNumber:)`` instead.
+    ///   The `targetColumnCount` parameter is now derived from `expectedFieldTypes.count`.
+    @available(*, deprecated, renamed: "repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:expectedFieldTypes:fileName:lineNumber:)")
+    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
+        repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &separatedLine, expectedFieldTypes: expectedFieldTypes, fileName: fileName, lineNumber: lineNumber)
     }
 
     /// Merges consecutive short lines starting at the given index until the target column count is reached.
@@ -466,7 +481,6 @@ public struct CSVErrorRepair {
         for issueLine in linesWithIssuesAfterSequentialLineRepair {
             repairLinesWithMoreColumnsBasedOnExpectedFields(
                 forLine: &lines[issueLine.lineIndex],
-                targetColumnCount: issueLine.expectedColumnCount,
                 expectedFieldTypes: orderedFieldTypes,
                 fileName: fileName,
                 lineNumber: issueLine.lineIndex)
