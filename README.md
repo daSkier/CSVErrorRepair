@@ -177,7 +177,6 @@ let issues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
 for issue in issues where issue.columnCount > issue.expectedColumnCount {
     CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(
         forLine: &lines[issue.lineIndex],
-        targetColumnCount: issue.expectedColumnCount,
         expectedFieldTypes: fieldTypes,
         fileName: "data.csv",
         lineNumber: issue.lineIndex
@@ -279,8 +278,8 @@ Both batch methods use `concurrentMap` to process files in parallel and return a
 | `findLinesWithIncorrectElementCount(fromLines:)` | Find lines with wrong column counts |
 | `findAndRepairLinesWithTooFewElements(_:)` | Find and merge short lines in-place |
 | `repairSequentialShortLines(lines:firstLineIndex:targetColumnCount:)` | Merge consecutive short lines starting at a given index |
-| `repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:targetColumnCount:expectedFieldTypes:fileName:lineNumber:)` | Repair a long line using field-type validation |
-| `validate(separatedLine:againstExpectedFieldTypes:targetColumnCount:)` | Validate a line's fields against expected types, returning a `ValidationResultSet` |
+| `repairLinesWithMoreColumnsBasedOnExpectedFields(forLine:expectedFieldTypes:fileName:lineNumber:)` | Repair a long line using field-type validation |
+| `validate(separatedLine:againstExpectedFieldTypes:)` | Validate a line's fields against expected types, returning a `ValidationResultSet` |
 | `correctErrorsIn(_:forUrl:fieldTypes:) async` | Apply both repairs to a single file's lines |
 | `correctErrorsIn(directory:fileFilter:fileToFieldType:) async throws` | Batch-repair all CSV files in a directory |
 | `correctErrorsIn(files:fileToFieldType:) async throws` | Batch-repair pre-loaded CSV file data |

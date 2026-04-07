@@ -56,21 +56,22 @@ public struct ValidationResultSet {
         }
     }
 
-    /// Combines the last validated index from each scan direction and validation level into a sorted array.
+    /// Combines the last validated index from each scan direction and validation level into a sorted,
+    /// deduplicated array of candidate merge points for the long-line repair algorithm.
     ///
-    /// The resulting indices represent candidate merge points for the long-line repair algorithm.
-    /// Requires all four boundary indices to be non-nil.
+    /// Requires all four boundary indices to be non-nil. Duplicates are removed so the repair
+    /// algorithm doesn't try the same merge point more than once.
     ///
     /// - Throws: ``ValidationResultSetError/oneLastIndicyNil`` if any boundary index is `nil`.
-    /// - Returns: A sorted array of four indices: the last valid/lessValid forward and backward boundaries.
+    /// - Returns: A sorted, deduplicated array of candidate merge-point indices.
     func mergedLastIndices() throws -> [Int] {
         if let lastValidForward, let lastValidBackward, let lastLessValidForward, let lastLessValidBackward {
-            return [
+            return Array(Set([
                 lastValidForward,
                 lastLessValidForward,
                 lastValidBackward,
                 lastLessValidBackward
-            ].sorted()
+            ])).sorted()
         }else {
             print("failed to get mergedLastIndicies - lastValidForward: \(String(describing: lastValidForward)) / lastValidBackward: \(String(describing: lastValidBackward)) / lastLessValidForward: \(String(describing: lastLessValidForward)) / lastLessValidBackward: \(String(describing: lastLessValidBackward))")
             throw ValidationResultSetError.oneLastIndicyNil

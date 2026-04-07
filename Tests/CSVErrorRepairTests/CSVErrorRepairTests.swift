@@ -172,7 +172,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                        targetColumnCount: issueLine.expectedColumnCount,
                                                                         expectedFieldTypes: fieldTypes,
                                                                         fileName: "AL1319evt.csv",
                                                                         lineNumber: issueLine.lineIndex)
@@ -202,7 +201,6 @@ Raceid	Eventid	Seasoncode	Racecodex	Disciplineid	Disciplinecode	Catcode	Catcode2
             let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             for issueLine in linesWithIssuesAfterSequentialLineRepair {
                 CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
-                                                                        targetColumnCount: issueLine.expectedColumnCount,
                                                                         expectedFieldTypes: fieldTypes,
                                                                         fileName: "AL1314rac.csv",
                                                                         lineNumber: issueLine.lineIndex)
