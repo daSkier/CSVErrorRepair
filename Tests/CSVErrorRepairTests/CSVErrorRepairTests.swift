@@ -552,6 +552,31 @@ struct SampleFieldMappings {
     ]
 }
 
+// MARK: - Issue 4: findLinesWithErrors trailing empty line consistency
+
+final class FindLinesWithErrorsConsistencyTests: XCTestCase {
+
+    /// Issue 4: findLinesWithErrors and findLinesWithIncorrectElementCount should
+    /// return the same results for the same input — including skipping trailing empty lines.
+    func testFindLinesWithErrorsSkipsTrailingEmptyLine() {
+        // CSV content with a trailing newline (produces a trailing empty line when parsed)
+        let csv = "A\tB\tC\n1\t2\t3\n"
+        let errors = CSVErrorRepair.findLinesWithErrors(fromString: csv)
+        // The trailing empty line [""] has count 1 != 3, but should be skipped
+        XCTAssertEqual(errors.count, 0)
+    }
+
+    /// Issue 4: Both methods should agree on the same parsed lines.
+    func testBothMethodsReturnSameResults() {
+        let csv = "A\tB\tC\n1\t2\t3\n4\t5\n"
+        let errorsFromString = CSVErrorRepair.findLinesWithErrors(fromString: csv)
+        let lines = CSVErrorRepair.getLines(fromString: csv)
+        let errorsFromLines = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
+        XCTAssertEqual(errorsFromString.count, errorsFromLines.count)
+        XCTAssertEqual(errorsFromString.map { $0.lineIndex }, errorsFromLines.map { $0.lineIndex })
+    }
+}
+
 // MARK: - Issue 6: repairSequentialShortLines bounds check
 
 final class RepairSequentialShortLinesBoundsTests: XCTestCase {
