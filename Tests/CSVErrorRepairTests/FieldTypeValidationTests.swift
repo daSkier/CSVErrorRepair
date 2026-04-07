@@ -221,4 +221,71 @@ final class FieldTypeValidationTests: XCTestCase {
         let field = FieldType.empty
         XCTAssertEqual(field.validate(inputString: "not empty"), .invalid)
     }
+
+    // MARK: - Edge Cases: Nullable + Constraint Combinations
+
+    /// Integer: nullable guard should fire before expectedValue check.
+    func testIntegerNullableWithExpectedValue() {
+        let field = FieldType.integer(nullable: true, expectedValue: 5, expectedLength: nil)
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+        XCTAssertEqual(field.validate(inputString: "5"), .valid)
+        XCTAssertEqual(field.validate(inputString: "3"), .invalid)
+    }
+
+    /// Integer: nullable guard should fire before expectedLength check.
+    func testIntegerNullableWithExpectedLength() {
+        let field = FieldType.integer(nullable: true, expectedValue: nil, expectedLength: 4)
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+        XCTAssertEqual(field.validate(inputString: "2019"), .valid)
+        XCTAssertEqual(field.validate(inputString: "19"), .invalid)
+    }
+
+    /// Integer: when both expectedValue and expectedLength are set,
+    /// expectedValue takes priority (expectedLength is never checked).
+    func testIntegerExpectedValueTakesPriorityOverLength() {
+        let field = FieldType.integer(nullable: false, expectedValue: 42, expectedLength: 5)
+        XCTAssertEqual(field.validate(inputString: "42"), .valid)   // matches value, length is 2 not 5
+        XCTAssertEqual(field.validate(inputString: "99"), .invalid) // wrong value
+    }
+
+    /// Float: nullable should not interfere with valid values.
+    func testFloatNullableWithValidValue() {
+        let field = FieldType.float(nullable: true)
+        XCTAssertEqual(field.validate(inputString: "3.14"), .valid)
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+        XCTAssertEqual(field.validate(inputString: "abc"), .invalid)
+    }
+
+    /// Issue 2 edge case: nullable string with all constraints set.
+    func testStringNullableWithAllConstraints() {
+        let field = FieldType.string(nullable: true, expectedLength: 10, startsWith: "US", contains: "@")
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+        XCTAssertEqual(field.validate(inputString: "US-test@__"), .valid)
+        XCTAssertEqual(field.validate(inputString: "US-testXXX"), .invalid) // no "@"
+    }
+
+    /// Issue 2 edge case: nullable string with expectedLength + contains.
+    func testStringNullableWithExpectedLengthAndContains() {
+        let field = FieldType.string(nullable: true, expectedLength: 5, startsWith: nil, contains: "abc")
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+        XCTAssertEqual(field.validate(inputString: "xabcx"), .valid)
+        XCTAssertEqual(field.validate(inputString: "xxxxx"), .invalid)
+    }
+
+    /// Issue 1 edge case: nullable date with an invalid (non-date) string
+    /// should still return .invalid, not .null.
+    func testDateNullableWithInvalidString() {
+        let field = FieldType.date(nullable: true)
+        XCTAssertEqual(field.validate(inputString: "not-a-date"), .invalid)
+        XCTAssertEqual(field.validate(inputString: "04-09-2023"), .invalid) // wrong field order
+    }
+
+    /// Issue 3 edge case: string with only nullable set (no constraints)
+    /// should return .valid for any non-empty string.
+    func testStringNullableOnlyNoConstraints() {
+        let field = FieldType.string(nullable: true, expectedLength: nil, startsWith: nil, contains: nil)
+        XCTAssertEqual(field.validate(inputString: "hello"), .valid)
+        XCTAssertEqual(field.validate(inputString: " "), .valid)  // whitespace is non-empty
+        XCTAssertEqual(field.validate(inputString: ""), .null)
+    }
 }
