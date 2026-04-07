@@ -337,6 +337,7 @@ public struct CSVErrorRepair {
         var linesAhead = 0
         repeat {
             linesAhead += 1
+            guard firstLineIndex + linesAhead < lines.count else { return }
             let firstLineIndices = lines[firstLineIndex].indices
             let mergeLineIndices = lines[firstLineIndex + linesAhead].indices
 
@@ -440,18 +441,22 @@ public struct CSVErrorRepair {
     ///   (`throws(ParseError)`) in a future version, once `fatalError` calls are replaced with thrown errors.
     /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
     public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
-        let enum1 = FileManager.default
+        guard let enumerator = FileManager.default
             .enumerator(at: directory,
                         includingPropertiesForKeys: nil,
-                        options: FileManager.DirectoryEnumerationOptions.skipsHiddenFiles)
-        let items = enum1?.allObjects as! [URL]
+                        options: .skipsHiddenFiles) else {
+            throw ParseError.directoryEnumerationFailed(directory)
+        }
+        guard let items = enumerator.allObjects as? [URL] else {
+            throw ParseError.directoryEnumerationFailed(directory)
+        }
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
-            .filter {  fileFilter($0) }
+            .filter { fileFilter($0) }
         print("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> FileIssues in
                 guard let mappingDict = fileToFieldType(csvFile) else {
-                    fatalError("failed to get file mapping dict")
+                    throw ParseError.missingFieldTypeMapping(csvFile)
                 }
                 return try await Task {
                     let fileString = try String(contentsOf: csvFile, encoding: .isoLatin1)
@@ -463,12 +468,16 @@ public struct CSVErrorRepair {
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }
-                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
-                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                        // Remove empty lines and single-empty-element lines left behind by the
+                        // merge process — prevents issues with files that end with \r or \n
+                        lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
                         let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        let fieldTypes = lines.first!.map { fieldName in
+                        guard let header = lines.first else {
+                            throw ParseError.emptyFileAfterCleanup(csvFile)
+                        }
+                        let fieldTypes = try header.map { fieldName -> FieldType in
                             guard let type = mappingDict[fieldName] else {
-                                fatalError("failed to get field type for \(fieldName)")
+                                throw ParseError.unknownFieldName(fieldName, csvFile)
                             }
                             return type
                         }
@@ -484,13 +493,12 @@ public struct CSVErrorRepair {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
                         return FileIssues(fileUrl: csvFile, issues: linesWithIssuesAfterLongLineRepair)
-                    }else{
+                    } else {
                         return FileIssues(fileUrl: csvFile, issues: linesWithIssues)
                     }
                 }.value
             }
         return fileErrors
-
     }
 
     /// Applies both short-line and long-line repairs to pre-loaded CSV file data concurrently, and returns any unresolved issues.
@@ -511,7 +519,7 @@ public struct CSVErrorRepair {
         let fileErrors = try await csvData
             .concurrentMap { csvFile -> FileIssues in
                 guard let mappingDict = fileToFieldType(csvFile.0) else {
-                    fatalError("failed to get file mapping dict")
+                    throw ParseError.missingFieldTypeMapping(csvFile.0)
                 }
                 return try await Task {
                     guard let fileString = String(data: csvFile.1, encoding: .isoLatin1) else {
@@ -525,12 +533,16 @@ public struct CSVErrorRepair {
                                                           firstLineIndex: issueLine.lineIndex,
                                                           targetColumnCount: issueLine.expectedColumnCount)
                         }
-                        lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
-                        lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                        // Remove empty lines and single-empty-element lines left behind by the
+                        // merge process — prevents issues with files that end with \r or \n
+                        lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
                         let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                        let fieldTypes = lines.first!.map { fieldName in
+                        guard let header = lines.first else {
+                            throw ParseError.emptyFileAfterCleanup(csvFile.0)
+                        }
+                        let fieldTypes = try header.map { fieldName -> FieldType in
                             guard let type = mappingDict[fieldName] else {
-                                fatalError("failed to get field type for \(fieldName)")
+                                throw ParseError.unknownFieldName(fieldName, csvFile.0)
                             }
                             return type
                         }
@@ -538,7 +550,7 @@ public struct CSVErrorRepair {
                             CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.expectedColumnCount,
                                                                                     expectedFieldTypes: fieldTypes,
-                                                                                            fileName: csvFile.0.lastPathComponent,
+                                                                                    fileName: csvFile.0.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                         }
                         let linesWithIssuesAfterLongLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
@@ -546,7 +558,7 @@ public struct CSVErrorRepair {
                             print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                         }
                         return FileIssues(fileUrl: csvFile.0, issues: linesWithIssuesAfterLongLineRepair)
-                    }else{
+                    } else {
                         return FileIssues(fileUrl: csvFile.0, issues: linesWithIssues)
                     }
                 }.value
@@ -607,9 +619,11 @@ public struct CSVErrorRepair {
     ///   - inputLines: The parsed CSV lines to repair. Not modified — a copy is made internally.
     ///   - url: The source file URL, used for diagnostic output and to populate ``FileIssues/fileUrl``.
     ///   - fieldTypes: A dictionary mapping column header names to their expected ``FieldType``.
+    /// - Throws: ``ParseError/emptyFileAfterCleanup(_:)`` if all lines are removed during cleanup.
+    ///   ``ParseError/unknownFieldName(_:_:)`` if a header column has no entry in the `fieldTypes` dictionary.
     /// - Returns: A tuple of the repaired line arrays and a ``FileIssues`` listing any lines that remain incorrect.
-    public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) async -> (resultLines: [[String]], issues: FileIssues) {
-        return await Task {
+    public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) async throws -> (resultLines: [[String]], issues: FileIssues) {
+        return try await Task {
             var lines = inputLines
             let linesWithIssues = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
             if linesWithIssues.count > 0 {
@@ -618,19 +632,23 @@ public struct CSVErrorRepair {
                                                   firstLineIndex: issueLine.lineIndex,
                                                   targetColumnCount: issueLine.expectedColumnCount)
                 }
-                lines.removeAll{ $0.count == 0 } // prevents issues with lines that end with /r
-                lines.removeAll { $0.count == 1 && $0.first!.isEmpty } // prevents issues with lines that end with /r
+                // Remove empty lines and single-empty-element lines left behind by the
+                // merge process — prevents issues with files that end with \r or \n
+                lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
                 let linesWithIssuesAfterSequentialLineRepair = CSVErrorRepair.findLinesWithIncorrectElementCount(fromLines: lines)
-                let fieldTypes = lines.first!.map { fieldName in
+                guard let header = lines.first else {
+                    throw ParseError.emptyFileAfterCleanup(url)
+                }
+                let orderedFieldTypes = try header.map { fieldName -> FieldType in
                     guard let type = fieldTypes[fieldName] else {
-                        fatalError("failed to get field type for \(fieldName)")
+                        throw ParseError.unknownFieldName(fieldName, url)
                     }
                     return type
                 }
                 for issueLine in linesWithIssuesAfterSequentialLineRepair {
                     CSVErrorRepair.repairLinesWithMoreColumnsBasedOnExpectedFields(forLine: &lines[issueLine.lineIndex],
                                                                                     targetColumnCount: issueLine.expectedColumnCount,
-                                                                                    expectedFieldTypes: fieldTypes,
+                                                                                    expectedFieldTypes: orderedFieldTypes,
                                                                                     fileName: url.lastPathComponent,
                                                                                     lineNumber: issueLine.lineIndex)
                 }
@@ -639,17 +657,25 @@ public struct CSVErrorRepair {
                     print("linesWithIssuesAfterLongLineRepair: \(linesWithIssuesAfterLongLineRepair)")
                 }
                 return (lines, FileIssues(fileUrl: url, issues: linesWithIssuesAfterLongLineRepair))
-            }else{
+            } else {
                 return (lines, FileIssues(fileUrl: url, issues: linesWithIssues))
             }
         }.value
     }
 }
 
-/// Errors that can occur during CSV parsing.
+/// Errors that can occur during CSV parsing and repair.
 public enum ParseError: Error {
     /// The validated index array was unexpectedly empty when attempting to retrieve its last element.
     case failedToGetLastItemFromValidatedIndicyArray
     /// The provided `Data` could not be converted to a `String` using the specified encoding.
     case failedToGetStringFromData
+    /// The directory enumerator returned unexpected content or was nil.
+    case directoryEnumerationFailed(URL)
+    /// The `fileToFieldType` closure returned `nil` for a file that needed field-type repair.
+    case missingFieldTypeMapping(URL)
+    /// After cleanup the file had no lines remaining (no header row to derive field types from).
+    case emptyFileAfterCleanup(URL)
+    /// A column header in the CSV had no corresponding entry in the field-type dictionary.
+    case unknownFieldName(String, URL)
 }

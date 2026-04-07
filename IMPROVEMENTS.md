@@ -99,13 +99,13 @@ print("expectedFieldTypes.count (\(expectedFieldTypes.count)) != targetColumnCou
 
 ## Crash Risks
 
-### 6. `repairSequentialShortLines` can index out of bounds
+### ~~6. `repairSequentialShortLines` can index out of bounds~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `repairSequentialShortLines`
 
 **Problem:** `linesAhead` is incremented at the top of a `repeat` loop before checking array bounds. If the short line is near the end of the file, `lines[firstLineIndex + linesAhead]` will crash with an index-out-of-range error.
 
-**Fix:** Add a bounds check at the top of the loop:
+**Fix:** Added a bounds check at the top of the loop:
 
 ```swift
 repeat {
@@ -116,57 +116,54 @@ repeat {
 
 ---
 
-### 7. Force casts and `fatalError` in batch methods
+### ~~7. Force casts and `fatalError` in batch methods~~ (RESOLVED)
 
-**File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `correctErrorsIn(directory:...)` and `correctErrorsIn(files:...)`
+**File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `correctErrorsIn(directory:...)`, `correctErrorsIn(files:...)`, and `correctErrorsIn(_:forUrl:fieldTypes:)`
 
-**Problem:** Several lines will crash the entire process on bad input instead of throwing:
+**Problem:** Several lines would crash the entire process on bad input instead of throwing:
 
 - `enum1?.allObjects as! [URL]` — force cast; crashes if the enumerator is nil (invalid directory).
 - `fatalError("failed to get file mapping dict")` — crashes instead of throwing. Both batch methods already declare `throws`, so this could be an error.
 - `lines.first!` — force unwrap after `removeAll`; crashes if lines become empty (degenerate input).
 
-**Fix:** Replace each crash point with a thrown error. Define new cases in `ParseError` (or a new error enum) such as:
+**Fix:** Replaced each crash point with a thrown error. Added new cases to `ParseError`:
 
 ```swift
 case directoryEnumerationFailed(URL)
 case missingFieldTypeMapping(URL)
 case emptyFileAfterCleanup(URL)
+case unknownFieldName(String, URL)
 ```
 
-Then replace `fatalError` calls with `throw` and `as!` with a `guard let ... as?`.
+All `fatalError` calls replaced with `throw`, `as!` replaced with `guard let ... as?`, and `lines.first!` replaced with `guard let header = lines.first`.
+
+**Note:** `correctErrorsIn(_:forUrl:fieldTypes:)` signature changed from `async ->` to `async throws ->` — this is a breaking API change for callers.
 
 ---
 
 ## Thread Safety
 
-### 8. `DateFormatter` is not thread-safe under concurrent access
+### ~~8. `DateFormatter` is not thread-safe under concurrent access~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/FieldType.swift`, top-level `let dateSpaceTimeFormatter` and `let dateWithDashesFormatter`
 
-**Problem:** `DateFormatter` is not thread-safe. The two global instances are shared across all concurrent tasks. When the batch methods use `concurrentMap`, multiple threads call `date(from:)` on the same formatter simultaneously, which is a data race that can cause intermittent crashes or incorrect results.
+**Problem:** `DateFormatter` is not thread-safe. The two global instances were shared across all concurrent tasks. When the batch methods use `concurrentMap`, multiple threads call `date(from:)` on the same formatter simultaneously, which is a data race that can cause intermittent crashes or incorrect results.
 
-**Fix options (pick one):**
-
-**Option A — Regex validation (recommended).** Since the date formats are fixed patterns, use a regex instead of a formatter. This is inherently thread-safe, faster, and has no Foundation dependency:
+**Fix:** Option A — Regex validation. Replaced both `DateFormatter` instances with inline regex patterns in the `validate` method:
 
 ```swift
 case .date(let nullable):
     if input.isEmpty { return nullable ? .null : .invalid }
-    let dateRegex = /^\d{4}-\d{2}-\d{2}$/
-    return input.wholeMatch(of: dateRegex) != nil ? .valid : .invalid
+    return input.wholeMatch(of: /^\d{4}-\d{2}-\d{2}$/) != nil ? .valid : .invalid
 
 case .dateTime:
     if input.isEmpty { return .invalid }
-    let dateTimeRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/
-    return input.wholeMatch(of: dateTimeRegex) != nil ? .valid : .invalid
+    return input.wholeMatch(of: /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/) != nil ? .valid : .invalid
 ```
 
-**Option B — Thread-local formatters.** Create a new formatter per call. `DateFormatter` creation is expensive, so this is less desirable than Option A.
+This is inherently thread-safe, faster, eliminates the global mutable state, and is compatible with Swift 6 strict concurrency. The global `DateFormatter` instances have been removed entirely.
 
-**Option C — Use a lock.** Wrap formatter access in `os_unfair_lock` or an actor. Adds contention under high concurrency.
-
-Option A is recommended because the library only checks date *format* validity (not calendar validity), and regex is both thread-safe and significantly faster than `DateFormatter`.
+**Note:** The regex validates structural format only (four-digit year, two-digit month/day/hour/minute/second), not calendar validity (e.g. `2023-02-30` would pass). This matches the library's existing behavior — it only checks whether a field *looks like* a date, not whether it represents a real calendar date. The regex is also stricter than `DateFormatter` in some cases (e.g. slash-separated dates that `DateFormatter` would leniently accept are now correctly rejected).
 
 ---
 
@@ -395,10 +392,10 @@ public static func validate(
 The items above are independent and can be tackled in any order. However, the following sequence minimizes risk and maximizes value:
 
 1. ~~**Issues 1–3** (FieldType validation bugs) — RESOLVED~~
-2. **Issue 8** (DateFormatter thread safety) — active data-race bug in concurrent code paths.
-3. **Issue 6** (bounds check) — potential crash on real-world input.
-4. **Issue 7** (fatalError → throw) — prevents crashes in batch processing.
-5. **Issue 16** (typed throws) — adopt typed throws after issue 7 removes all `fatalError` paths.
+2. ~~**Issue 8** (DateFormatter thread safety) — RESOLVED via regex replacement~~
+3. ~~**Issue 6** (bounds check) — RESOLVED~~
+4. ~~**Issue 7** (fatalError → throw) — RESOLVED with new ParseError cases~~
+5. **Issue 16** (typed throws) — adopt typed throws now that issue 7 has removed all `fatalError` paths.
 6. **Issue 15** (extract repair helper) — reduces duplication so subsequent fixes apply everywhere.
 7. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
 8. **Issues 4–5** (consistency / messaging) — minor correctness.
