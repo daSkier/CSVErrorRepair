@@ -66,13 +66,13 @@ This is a valid configuration (a non-empty string with no further constraints) a
 
 ---
 
-### 4. `findLinesWithErrors` does not skip trailing empty lines
+### ~~4. `findLinesWithErrors` does not skip trailing empty lines~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `findLinesWithErrors(fromString:)`
 
-**Problem:** `findLinesWithIncorrectElementCount(fromLines:)` skips a trailing empty line (common in files ending with `\r` or `\n`), but `findLinesWithErrors(fromString:)` does not. The two functions return different results for the same input.
+**Problem:** `findLinesWithIncorrectElementCount(fromLines:)` skips a trailing empty line (common in files ending with `\r` or `\n`), but `findLinesWithErrors(fromString:)` did not. The two functions returned different results for the same input.
 
-**Fix:** Either add the same trailing-line skip to `findLinesWithErrors`, or have it delegate to `findLinesWithIncorrectElementCount`:
+**Fix:** `findLinesWithErrors` now delegates to `findLinesWithIncorrectElementCount`, ensuring consistent behavior:
 
 ```swift
 public static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
@@ -83,13 +83,13 @@ public static func findLinesWithErrors(fromString inputString: String) -> [LineI
 
 ---
 
-### 5. Misleading guard-failure message
+### ~~5. Misleading guard-failure message~~ (RESOLVED)
 
 **File:** `Sources/CSVErrorRepair/CSVErrorRepair.swift`, `repairLinesWithMoreColumnsBasedOnExpectedFields`
 
-**Problem:** The guard prints `"expectedFieldTypes.count == targetColumnCount"` when the guard *fails*, implying they are equal when they are not.
+**Problem:** The guard printed `"expectedFieldTypes.count == targetColumnCount"` when the guard *failed*, implying they were equal when they were not.
 
-**Fix:** Change the message to describe the actual failure:
+**Fix:** Changed the message to describe the actual failure with the concrete values:
 
 ```swift
 print("expectedFieldTypes.count (\(expectedFieldTypes.count)) != targetColumnCount (\(targetColumnCount)) in \(#function)")
@@ -304,23 +304,21 @@ Any bug fix had to be applied in all three places, and they could easily drift o
 
 ---
 
-### 16. Adopt typed throws
+### 16. Adopt typed throws — DEFERRED
 
 **Files:** `Sources/CSVErrorRepair/CSVErrorRepair.swift` — `getLines(fromData:...)`, `correctErrorsIn(directory:...)`, `correctErrorsIn(files:...)`
 
-**Problem:** These methods declare `throws` but only ever throw ``ParseError`` cases. Callers must catch a generic `Error` and downcast, losing type safety.
+**Problem:** These methods declare `throws` but only ever throw `ParseError` cases. Callers must catch a generic `Error` and downcast, losing type safety.
 
-**Fix:** Swift 6 supports typed throws. Once the `fatalError` calls from issue 7 are replaced with thrown errors (possibly requiring new error cases), adopt typed throws:
+**Status:** Investigated and deferred. While issue 7 has been resolved (all `fatalError` paths are now proper throws), adopting typed throws is blocked by ecosystem limitations:
 
-```swift
-public static func getLines(fromData data: Data, ...) throws(ParseError) -> [[String]] { ... }
+1. **CollectionConcurrencyKit blocker.** The batch methods use `concurrentMap` from CollectionConcurrencyKit, which declares untyped `async throws`. Even if the public methods were changed to `throws(ParseError)`, the compiler would reject it because `concurrentMap` erases the error type to `any Error`.
 
-public static func correctErrorsIn(directory: URL, ...) async throws(ParseError) -> [FileIssues] { ... }
+2. **`Task` does not support typed throws.** `Task` constructors require `Failure == any Error` — there is no way to create `Task<T, ParseError>`. This is an [open Swift issue](https://github.com/swiftlang/swift/issues/74556) requiring a separate Swift Evolution proposal.
 
-public static func correctErrorsIn(files: [(URL, Data)], ...) async throws(ParseError) -> [FileIssues] { ... }
-```
+3. **SE-0413 guidance discourages broad adoption.** The proposal states: *"the existing (untyped) `throws` remains the better default error-handling mechanism for most Swift code."* Typed throws is recommended primarily for Embedded Swift, generic error propagation, and sealed internal APIs.
 
-**Prerequisite:** Complete issue 7 first so that all error paths use thrown errors rather than `fatalError`. Then audit each method to confirm every thrown error is a `ParseError` case (or extend the enum as needed).
+**Revisit when:** Either CollectionConcurrencyKit is replaced with `withThrowingTaskGroup` (which does support typed throws), or `Task` gains typed throws support in a future Swift release.
 
 ---
 
@@ -364,8 +362,8 @@ The items above are independent and can be tackled in any order. However, the fo
 2. ~~**Issue 8** (DateFormatter thread safety) — RESOLVED via regex replacement~~
 3. ~~**Issue 6** (bounds check) — RESOLVED~~
 4. ~~**Issue 7** (fatalError → throw) — RESOLVED with new ParseError cases~~
-5. **Issue 16** (typed throws) — adopt typed throws now that issue 7 has removed all `fatalError` paths.
-6. ~~**Issue 15** (extract repair helper) — RESOLVED~~
-7. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
-8. **Issues 4–5** (consistency / messaging) — minor correctness.
+5. ~~**Issue 15** (extract repair helper) — RESOLVED~~
+6. ~~**Issues 4–5** (consistency / messaging) — RESOLVED~~
+7. **Issue 16** (typed throws) — DEFERRED due to CollectionConcurrencyKit and Task limitations.
+8. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
 9. **Issues 9–14** (performance) — optimizations, impact scales with file size and column count.

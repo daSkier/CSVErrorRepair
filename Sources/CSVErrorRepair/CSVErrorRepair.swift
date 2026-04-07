@@ -115,20 +115,13 @@ public struct CSVErrorRepair {
     ///
     /// A convenience method that combines parsing and error detection in one call.
     /// The expected column count is determined by the first line (header row).
+    /// Trailing empty lines (common in files ending with `\r` or `\n`) are skipped.
     ///
     /// - Parameter inputString: The raw CSV content as a string.
     /// - Returns: An array of ``LineIssue`` values describing each line with an unexpected column count.
     public static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
-        guard let firstLineColumnCount = separatedLines.first?.count else {
-            print("failed to get firstLineColumnCount for provided string")
-            return []
-        }
-        var indicesWithIssue = [LineIssue]()
-        for index in separatedLines.indices where separatedLines[index].count != firstLineColumnCount {
-            indicesWithIssue.append(LineIssue(lineIndex: index, columnCount: separatedLines[index].count, expectedColumnCount: firstLineColumnCount))
-        }
-        return indicesWithIssue
+        return Self.findLinesWithIncorrectElementCount(fromLines: separatedLines)
     }
 
     /// Finds lines whose column count differs from the first line (header row).
@@ -175,7 +168,7 @@ public struct CSVErrorRepair {
     ///   - lineNumber: The line number in the source file, used for diagnostic output.
     public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], targetColumnCount: Int, expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
         guard expectedFieldTypes.count == targetColumnCount else {
-            print("expectedFieldTypes.count == targetColumnCount in \(#function)")
+            print("expectedFieldTypes.count (\(expectedFieldTypes.count)) != targetColumnCount (\(targetColumnCount)) in \(#function)")
             return
         }
         let fieldCheck = Self.validate(separatedLine: separatedLine,
