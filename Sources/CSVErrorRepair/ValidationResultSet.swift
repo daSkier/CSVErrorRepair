@@ -18,13 +18,13 @@
 public struct ValidationResultSet {
     /// Column indices that fully validated when scanning forward from the start.
     var validatedIndicesForward: [Int]
-    /// The first column index that failed validation when scanning forward.
+    /// Column indices that failed validation when scanning forward.
     var invalidIndiciesForward: [Int]
     /// Column indices with weaker validation (null or unknownString) when scanning forward.
     var lessValidatedIndicesForward: [Int]
     /// Column indices that fully validated when scanning backward from the end.
     var validatedIndicesBackward: [Int]
-    /// The first column index that failed validation when scanning backward.
+    /// Column indices that failed validation when scanning backward.
     var invalidIndicesBackward: [Int]
     /// Column indices with weaker validation (null or unknownString) when scanning backward.
     var lessValidatedIndicesBackward: [Int]

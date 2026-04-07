@@ -24,7 +24,7 @@ import CollectionConcurrencyKit
 /// - ``getLines(fromString:lineDelimeter:columnDelimeter:)``
 /// - ``getLines(fromData:lineDelimeter:columnDelimeter:encoding:)``
 ///
-/// ### Conversion
+/// ### Converting Back to String or Data
 /// - ``convertToString(lines:columnDelimeter:lineDelimeter:checkForQuotes:)``
 /// - ``convertToData(lines:columnDelimeter:lineDelimeter:encoding:)``
 ///
@@ -70,6 +70,7 @@ public struct CSVErrorRepair {
     ///   - columnDelimeter: The character(s) separating columns. Defaults to `"\t"`.
     ///   - encoding: The string encoding to use when converting data. Defaults to `.isoLatin1`.
     /// - Throws: ``ParseError/failedToGetStringFromData`` if the data cannot be decoded with the given encoding.
+    ///   Consider making this a typed throw (`throws(ParseError)`) in a future version.
     /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
         guard let string = String(data: data, encoding: encoding) else {
@@ -167,7 +168,8 @@ public struct CSVErrorRepair {
     ///
     /// - Parameters:
     ///   - separatedLine: The line to repair, modified in-place.
-    ///   - targetColumnCount: The expected number of columns.
+    ///   - targetColumnCount: The expected number of columns. Must equal `expectedFieldTypes.count`.
+    ///     In a future version this parameter could be removed and derived from the field types array.
     ///   - expectedFieldTypes: An ordered array of ``FieldType`` values matching each column.
     ///   - fileName: The source file name, used for diagnostic output.
     ///   - lineNumber: The line number in the source file, used for diagnostic output.
@@ -252,7 +254,8 @@ public struct CSVErrorRepair {
     /// - Parameters:
     ///   - separatedLine: The fields of the line to validate.
     ///   - againstExpectedFieldTypes: The expected ``FieldType`` for each column position.
-    ///   - targetColumnCount: The expected number of columns (used to calculate the backward offset).
+    ///   - targetColumnCount: The expected number of columns (used to calculate the backward scan offset).
+    ///     In a future version this could be derived from `againstExpectedFieldTypes.count`.
     /// - Returns: A ``ValidationResultSet`` with the results of both forward and backward scans.
     public static func validate(separatedLine: [String], againstExpectedFieldTypes: [FieldType], targetColumnCount: Int) -> ValidationResultSet {
         let lineIndices = separatedLine.indices
@@ -433,7 +436,8 @@ public struct CSVErrorRepair {
     ///   - fileFilter: A closure that returns `true` for files that should be processed.
     ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
     ///     Return `nil` for files that should not have field-type-based repair applied.
-    /// - Throws: ``ParseError`` if file data cannot be decoded.
+    /// - Throws: ``ParseError`` if file data cannot be decoded. Consider making this a typed throw
+    ///   (`throws(ParseError)`) in a future version, once `fatalError` calls are replaced with thrown errors.
     /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
     public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let enum1 = FileManager.default
@@ -498,7 +502,8 @@ public struct CSVErrorRepair {
     /// - Parameters:
     ///   - files: An array of `(URL, Data)` tuples representing CSV files.
     ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
-    /// - Throws: ``ParseError/failedToGetStringFromData`` if file data cannot be decoded.
+    /// - Throws: ``ParseError/failedToGetStringFromData`` if file data cannot be decoded. Consider making
+    ///   this a typed throw (`throws(ParseError)`) in a future version.
     /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
     public static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
         let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }

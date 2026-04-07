@@ -338,6 +338,58 @@ Then each public method delegates to this helper, reducing each to a few lines.
 
 ---
 
+### 16. Adopt typed throws
+
+**Files:** `Sources/CSVErrorRepair/CSVErrorRepair.swift` — `getLines(fromData:...)`, `correctErrorsIn(directory:...)`, `correctErrorsIn(files:...)`
+
+**Problem:** These methods declare `throws` but only ever throw ``ParseError`` cases. Callers must catch a generic `Error` and downcast, losing type safety.
+
+**Fix:** Swift 6 supports typed throws. Once the `fatalError` calls from issue 7 are replaced with thrown errors (possibly requiring new error cases), adopt typed throws:
+
+```swift
+public static func getLines(fromData data: Data, ...) throws(ParseError) -> [[String]] { ... }
+
+public static func correctErrorsIn(directory: URL, ...) async throws(ParseError) -> [FileIssues] { ... }
+
+public static func correctErrorsIn(files: [(URL, Data)], ...) async throws(ParseError) -> [FileIssues] { ... }
+```
+
+**Prerequisite:** Complete issue 7 first so that all error paths use thrown errors rather than `fatalError`. Then audit each method to confirm every thrown error is a `ParseError` case (or extend the enum as needed).
+
+---
+
+### 17. Derive `targetColumnCount` from `expectedFieldTypes.count`
+
+**Files:** `Sources/CSVErrorRepair/CSVErrorRepair.swift` — `repairLinesWithMoreColumnsBasedOnExpectedFields` and `validate(separatedLine:againstExpectedFieldTypes:targetColumnCount:)`
+
+**Problem:** Both methods take a `targetColumnCount` parameter that must always equal `expectedFieldTypes.count` (enforced by a guard in the repair method). This is redundant — the count is already implicit in the array length — and creates a source of caller error if the two values ever diverge.
+
+**Fix:** Remove the `targetColumnCount` parameter and derive it internally:
+
+```swift
+public static func repairLinesWithMoreColumnsBasedOnExpectedFields(
+    forLine separatedLine: inout [String],
+    expectedFieldTypes: [FieldType],
+    fileName: String,
+    lineNumber: Int
+) {
+    let targetColumnCount = expectedFieldTypes.count
+    // ... rest of method unchanged
+}
+
+public static func validate(
+    separatedLine: [String],
+    againstExpectedFieldTypes: [FieldType]
+) -> ValidationResultSet {
+    let targetColumnCount = againstExpectedFieldTypes.count
+    // ... rest of method unchanged
+}
+```
+
+**Note:** This is a breaking API change. If you need to preserve backwards compatibility, mark the old signatures `@available(*, deprecated)` and have them forward to the new versions.
+
+---
+
 ## Suggested implementation order
 
 The items above are independent and can be tackled in any order. However, the following sequence minimizes risk and maximizes value:
@@ -346,6 +398,8 @@ The items above are independent and can be tackled in any order. However, the fo
 2. **Issues 1–3** (FieldType validation bugs) — logic bugs that silently produce wrong results.
 3. **Issue 6** (bounds check) — potential crash on real-world input.
 4. **Issue 7** (fatalError → throw) — prevents crashes in batch processing.
-5. **Issue 15** (extract repair helper) — reduces duplication so subsequent fixes apply everywhere.
-6. **Issues 4–5** (consistency / messaging) — minor correctness.
-7. **Issues 9–14** (performance) — optimizations, impact scales with file size and column count.
+5. **Issue 16** (typed throws) — adopt typed throws after issue 7 removes all `fatalError` paths.
+6. **Issue 15** (extract repair helper) — reduces duplication so subsequent fixes apply everywhere.
+7. **Issue 17** (derive targetColumnCount) — remove redundant parameter after API is stabilized.
+8. **Issues 4–5** (consistency / messaging) — minor correctness.
+9. **Issues 9–14** (performance) — optimizations, impact scales with file size and column count.
