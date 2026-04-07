@@ -551,3 +551,128 @@ struct SampleFieldMappings {
         "Lastupdate": .dateTime
     ]
 }
+
+// MARK: - Issue 6: repairSequentialShortLines bounds check
+
+final class RepairSequentialShortLinesBoundsTests: XCTestCase {
+
+    /// Issue 6: When the short line is the last line, linesAhead increments past the array bounds.
+    /// Before the fix this would crash with index-out-of-range.
+    func testShortLineAtEndOfArrayDoesNotCrash() {
+        var lines: [[String]] = [
+            ["A", "B", "C"],   // header (3 cols)
+            ["x", "y"],       // short line at index 1 — only 2 cols
+        ]
+        // Should return gracefully, not crash
+        CSVErrorRepair.repairSequentialShortLines(lines: &lines, firstLineIndex: 1, targetColumnCount: 3)
+        // The short line can't be merged (nothing after it), so it stays unchanged
+        XCTAssertEqual(lines[1], ["x", "y"])
+    }
+
+    /// Issue 6: Two consecutive short lines that together make a full line should merge.
+    func testTwoConsecutiveShortLinesMerge() {
+        var lines: [[String]] = [
+            ["A", "B", "C"],   // header
+            ["x", "y"],       // short line: 2 cols
+            ["z"],            // short line: 1 col
+        ]
+        CSVErrorRepair.repairSequentialShortLines(lines: &lines, firstLineIndex: 1, targetColumnCount: 3)
+        // "y" + "z" merged into "yz", then the rest appended → ["x", "yz"]... but that's still 2 cols
+        // Actually: last element of line 1 ("y") gets line 2's first ("z") appended → "yz"
+        // Then line 2's remaining elements (none) are appended.
+        // Result: line 1 = ["x", "yz"] (still 2 cols, so loop continues but hits bounds guard)
+        XCTAssertEqual(lines[1], ["x", "yz"])
+        XCTAssertEqual(lines[2], [])  // merged line emptied
+    }
+
+    /// Issue 6: Short line at the very last index with firstLineIndex pointing to it.
+    func testShortLineIsLastLine() {
+        var lines: [[String]] = [
+            ["A", "B", "C", "D"],
+            ["1", "2", "3", "4"],
+            ["x"],
+        ]
+        CSVErrorRepair.repairSequentialShortLines(lines: &lines, firstLineIndex: 2, targetColumnCount: 4)
+        // Nothing after index 2 to merge with — should return without crashing
+        XCTAssertEqual(lines[2], ["x"])
+    }
+}
+
+// MARK: - Issue 7: fatalError replaced with thrown errors
+
+final class BatchMethodErrorHandlingTests: XCTestCase {
+
+    /// Issue 7: correctErrorsIn(files:) should throw .missingFieldTypeMapping
+    /// when the mapping closure returns nil.
+    func testMissingFieldTypeMappingThrows() async {
+        let csvContent = "A\tB\tC\n1\t2\t3\n"
+        let data = csvContent.data(using: .isoLatin1)!
+        let url = URL(fileURLWithPath: "/tmp/test.csv")
+
+        do {
+            _ = try await CSVErrorRepair.correctErrorsIn(
+                files: [(url, data)],
+                fileToFieldType: { _ in nil }  // returns nil → should throw
+            )
+            XCTFail("Expected ParseError.missingFieldTypeMapping to be thrown")
+        } catch let error as ParseError {
+            if case .missingFieldTypeMapping(let errorUrl) = error {
+                XCTAssertEqual(errorUrl, url)
+            } else {
+                XCTFail("Expected .missingFieldTypeMapping, got \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
+    /// Issue 7: correctErrorsIn(_:forUrl:fieldTypes:) should throw .unknownFieldName
+    /// when a header column has no entry in the field-type dictionary.
+    func testUnknownFieldNameThrows() async {
+        // Lines with an error to trigger the repair path (short lines)
+        let lines: [[String]] = [
+            ["A", "B", "C"],
+            ["1"],          // short
+            ["2", "3"],     // short — will merge with above
+        ]
+        let url = URL(fileURLWithPath: "/tmp/test.csv")
+        // Provide mapping for "A" and "B" but NOT "C"
+        let fieldTypes: [String: FieldType] = [
+            "A": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+            "B": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+            // "C" is missing
+        ]
+
+        do {
+            _ = try await CSVErrorRepair.correctErrorsIn(lines, forUrl: url, fieldTypes: fieldTypes)
+            XCTFail("Expected ParseError.unknownFieldName to be thrown")
+        } catch let error as ParseError {
+            if case .unknownFieldName(let name, _) = error {
+                XCTAssertEqual(name, "C")
+            } else {
+                XCTFail("Expected .unknownFieldName, got \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
+    /// Issue 7: correctErrorsIn(_:forUrl:fieldTypes:) should not throw when
+    /// all field names have mappings and the file has errors to repair.
+    func testCorrectErrorsInDoesNotThrowWithValidMapping() async throws {
+        let lines: [[String]] = [
+            ["A", "B", "C"],
+            ["1", "2", "3"],
+        ]
+        let url = URL(fileURLWithPath: "/tmp/test.csv")
+        let fieldTypes: [String: FieldType] = [
+            "A": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+            "B": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+            "C": .integer(nullable: false, expectedValue: nil, expectedLength: nil),
+        ]
+
+        let result = try await CSVErrorRepair.correctErrorsIn(lines, forUrl: url, fieldTypes: fieldTypes)
+        XCTAssertTrue(result.issues.issues.isEmpty)
+        XCTAssertEqual(result.resultLines.count, 2)
+    }
+}

@@ -7,20 +7,6 @@
 
 import Foundation
 
-/// Date formatter for `yyyy-MM-dd HH:mm:ss` used by ``FieldType/dateTime``.
-let dateSpaceTimeFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd' 'HH:mm:ss"
-    return formatter
-}()
-
-/// Date formatter for `yyyy-MM-dd` used by ``FieldType/date(nullable:)``.
-let dateWithDashesFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
-
 /// Describes the expected data type of a CSV column, used by the long-line repair algorithm
 /// to determine where a delimiter was erroneously introduced inside a field value.
 ///
@@ -145,9 +131,14 @@ extension FieldType {
             if input.isEmpty {
                 return nullable ? .null : .invalid
             }
-            return dateWithDashesFormatter.date(from: input) != nil ? .valid : .invalid
+            // Regex is thread-safe, unlike DateFormatter which has shared mutable state.
+            // Only checks structural format (yyyy-MM-dd), not calendar validity.
+            return input.wholeMatch(of: /^\d{4}-\d{2}-\d{2}$/) != nil ? .valid : .invalid
         case .dateTime:
-            return dateSpaceTimeFormatter.date(from: input) != nil ? .valid : .invalid
+            if input.isEmpty { return .invalid }
+            // Regex is thread-safe, unlike DateFormatter which has shared mutable state.
+            // Only checks structural format (yyyy-MM-dd HH:mm:ss), not calendar validity.
+            return input.wholeMatch(of: /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/) != nil ? .valid : .invalid
         case .empty:
             return input.isEmpty ? .valid : .invalid
         }
