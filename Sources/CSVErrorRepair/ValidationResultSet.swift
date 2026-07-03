@@ -62,9 +62,11 @@ public struct ValidationResultSet {
     /// Requires all four boundary indices to be non-nil. Duplicates are removed so the repair
     /// algorithm doesn't try the same merge point more than once.
     ///
+    /// - Parameter log: An optional logging sink. When `nil` (the default) all diagnostic output
+    ///   is suppressed; pass a closure to observe diagnostics.
     /// - Throws: ``ValidationResultSetError/oneLastIndicyNil`` if any boundary index is `nil`.
     /// - Returns: A sorted, deduplicated array of candidate merge-point indices.
-    func mergedLastIndices() throws -> [Int] {
+    func mergedLastIndices(log: ((String) -> Void)? = nil) throws -> [Int] {
         if let lastValidForward, let lastValidBackward, let lastLessValidForward, let lastLessValidBackward {
             return Array(Set([
                 lastValidForward,
@@ -73,18 +75,21 @@ public struct ValidationResultSet {
                 lastLessValidBackward
             ])).sorted()
         }else {
-            print("failed to get mergedLastIndicies - lastValidForward: \(String(describing: lastValidForward)) / lastValidBackward: \(String(describing: lastValidBackward)) / lastLessValidForward: \(String(describing: lastLessValidForward)) / lastLessValidBackward: \(String(describing: lastLessValidBackward))")
+            log?("failed to get mergedLastIndicies - lastValidForward: \(String(describing: lastValidForward)) / lastValidBackward: \(String(describing: lastValidBackward)) / lastLessValidForward: \(String(describing: lastLessValidForward)) / lastLessValidBackward: \(String(describing: lastLessValidBackward))")
             throw ValidationResultSetError.oneLastIndicyNil
         }
     }
 
-    /// Prints a diagnostic summary of the validation results to standard output.
-    func printResults() {
-        print(validForwardBackDifferenceString())
-        print(lessValidForwardBackDifferenceString())
-        print("invalidIndicesForward: \(invalidIndiciesForward)")
-        print("invalidIndicesBackward: \(invalidIndicesBackward)")
-        print("valid indicies array: \(String(describing: try? mergedLastIndices()))")
+    /// Emits a diagnostic summary of the validation results to the provided logging sink.
+    ///
+    /// - Parameter log: An optional logging sink. When `nil` (the default) all diagnostic output
+    ///   is suppressed; pass a closure to observe diagnostics.
+    func printResults(log: ((String) -> Void)? = nil) {
+        log?(validForwardBackDifferenceString())
+        log?(lessValidForwardBackDifferenceString())
+        log?("invalidIndicesForward: \(invalidIndiciesForward)")
+        log?("invalidIndicesBackward: \(invalidIndicesBackward)")
+        log?("valid indicies array: \(String(describing: try? mergedLastIndices(log: log)))")
     }
     /// Errors that can occur when computing merged indices from a ``ValidationResultSet``.
     public enum ValidationResultSetError: Error {

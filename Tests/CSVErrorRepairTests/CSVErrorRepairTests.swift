@@ -699,3 +699,55 @@ final class BatchMethodErrorHandlingTests: XCTestCase {
         XCTAssertEqual(result.resultLines.count, 2)
     }
 }
+
+// MARK: - Item #80: getLines line-ending normalization
+
+final class GetLinesLineEndingNormalizationTests: XCTestCase {
+
+    /// Item #80: A file mixing CRLF body rows, a lone LF, and a trailing bare CR must split into
+    /// the correct number of rows, and NO cell may retain an embedded newline or carriage return.
+    func testMixedLineEndingsSplitCorrectlyWithNoEmbeddedNewlines() {
+        // Header + row1 joined by CRLF, row1 + row2 joined by a lone LF,
+        // row2 + row3 joined by CRLF, then a trailing bare CR after the last row.
+        let mixed = "A\tB\tC\r\n1\t2\t3\n4\t5\t6\r\n7\t8\t9\r"
+
+        let lines = CSVErrorRepair.getLines(fromString: mixed)
+
+        // 4 content rows; the trailing bare CR yields one trailing empty row ([""]).
+        XCTAssertEqual(lines.count, 5)
+        XCTAssertEqual(lines[0], ["A", "B", "C"])
+        XCTAssertEqual(lines[1], ["1", "2", "3"])
+        XCTAssertEqual(lines[2], ["4", "5", "6"])
+        XCTAssertEqual(lines[3], ["7", "8", "9"])
+        XCTAssertEqual(lines[4], [""]) // trailing empty row from the bare CR
+
+        // Critically: no cell may contain an embedded \n or \r after normalization.
+        for row in lines {
+            for cell in row {
+                XCTAssertFalse(cell.contains("\n"), "cell unexpectedly contains an embedded LF: \(cell.debugDescription)")
+                XCTAssertFalse(cell.contains("\r"), "cell unexpectedly contains an embedded CR: \(cell.debugDescription)")
+            }
+        }
+    }
+
+    /// Item #80: Well-formed single-line-ending (LF-only) files must behave identically to before —
+    /// the normalization is a no-op for them.
+    func testPureLFFileUnchanged() {
+        let lf = "A\tB\tC\n1\t2\t3\n4\t5\t6"
+        let lines = CSVErrorRepair.getLines(fromString: lf)
+        XCTAssertEqual(lines, [["A", "B", "C"], ["1", "2", "3"], ["4", "5", "6"]])
+    }
+
+    /// Item #80: A pure-CRLF file must split into rows with no embedded CR left in any cell.
+    func testPureCRLFFileHasNoEmbeddedCR() {
+        let crlf = "A\tB\tC\r\n1\t2\t3\r\n"
+        let lines = CSVErrorRepair.getLines(fromString: crlf)
+        XCTAssertEqual(lines[0], ["A", "B", "C"])
+        XCTAssertEqual(lines[1], ["1", "2", "3"])
+        for row in lines {
+            for cell in row {
+                XCTAssertFalse(cell.contains("\r"), "cell unexpectedly contains an embedded CR: \(cell.debugDescription)")
+            }
+        }
+    }
+}
