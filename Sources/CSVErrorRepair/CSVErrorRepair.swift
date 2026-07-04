@@ -53,6 +53,12 @@ public struct CSVErrorRepair {
     ///
     /// Each inner array represents one line, with each element being a single field value.
     ///
+    /// - Important: This parser is **not quote-aware** by design (the FIS files it targets are
+    ///   tab-delimited and unquoted). It splits on the raw column/line delimiters regardless of
+    ///   quoting, so a *quoted* field that itself contains a delimiter or a newline will be split
+    ///   into multiple cells/rows rather than preserved as one field. For quoted CSV with embedded
+    ///   delimiters or newlines, use a dedicated RFC-4180 parser instead.
+    ///
     /// - Parameters:
     ///   - inputString: The raw CSV content as a string.
     ///   - lineDelimeter: Legacy parameter, retained for source compatibility. **Ignored** — row
