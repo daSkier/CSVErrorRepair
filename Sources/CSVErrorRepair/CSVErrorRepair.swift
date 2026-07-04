@@ -45,17 +45,31 @@ public struct CSVErrorRepair {
 
     /// Parses a CSV string into a two-dimensional array of field values.
     ///
+    /// Line endings are normalized up front so that files with mixed endings (CRLF, lone LF,
+    /// bare CR) split into rows consistently: every `"\r\n"` is collapsed to `"\n"`, then every
+    /// remaining lone `"\r"` is collapsed to `"\n"`, and the result is split on `"\n"`. This
+    /// guarantees no cell retains an embedded newline or carriage return that would otherwise be
+    /// invisible to the ragged-row detectors.
+    ///
     /// Each inner array represents one line, with each element being a single field value.
-    /// Newline characters are trimmed from individual lines before splitting by column delimiter.
     ///
     /// - Parameters:
     ///   - inputString: The raw CSV content as a string.
-    ///   - lineDelimeter: The character(s) separating rows. Defaults to `"\n"`.
+    ///   - lineDelimeter: Legacy parameter, retained for source compatibility. **Ignored** — row
+    ///     splitting is now driven entirely by the internal line-ending normalization above and no
+    ///     longer depends on a caller-supplied delimiter. Existing well-formed single-line-ending
+    ///     files parse identically to before.
     ///   - columnDelimeter: The character(s) separating columns. Defaults to `"\t"`.
     /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromString inputString: String, lineDelimeter: String = "\n", columnDelimeter: String = "\t") -> [[String]] {
-        inputString.components(separatedBy: lineDelimeter).map {
-            $0.trimmingCharacters(in: .newlines).components(separatedBy: columnDelimeter)
+        // Normalize line endings once: CRLF -> LF, then lone CR -> LF, then split on LF.
+        // This makes row splitting independent of the caller's delimiter assumption and ensures
+        // no cell carries an embedded newline/CR on mixed-ending files.
+        let normalized = inputString
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        return normalized.components(separatedBy: "\n").map {
+            $0.components(separatedBy: columnDelimeter)
         }
     }
 
@@ -117,11 +131,14 @@ public struct CSVErrorRepair {
     /// The expected column count is determined by the first line (header row).
     /// Trailing empty lines (common in files ending with `\r` or `\n`) are skipped.
     ///
-    /// - Parameter inputString: The raw CSV content as a string.
+    /// - Parameters:
+    ///   - inputString: The raw CSV content as a string.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics.
     /// - Returns: An array of ``LineIssue`` values describing each line with an unexpected column count.
-    public static func findLinesWithErrors(fromString inputString: String) -> [LineIssue] {
+    public static func findLinesWithErrors(fromString inputString: String, log: ((String) -> Void)? = nil) -> [LineIssue] {
         let separatedLines = Self.getLines(fromString: inputString)
-        return Self.findLinesWithIncorrectElementCount(fromLines: separatedLines)
+        return Self.findLinesWithIncorrectElementCount(fromLines: separatedLines, log: log)
     }
 
     /// Finds lines whose column count differs from the first line (header row).
@@ -130,11 +147,14 @@ public struct CSVErrorRepair {
     /// are returned as issues. A trailing empty line (common in files ending with a carriage return)
     /// is silently skipped.
     ///
-    /// - Parameter separatedLines: The parsed CSV line arrays.
+    /// - Parameters:
+    ///   - separatedLines: The parsed CSV line arrays.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics.
     /// - Returns: An array of ``LineIssue`` values describing each line with an unexpected column count.
-    public static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]]) -> [LineIssue] {
+    public static func findLinesWithIncorrectElementCount(fromLines separatedLines: [[String]], log: ((String) -> Void)? = nil) -> [LineIssue] {
         guard let firstLineColumnCount = separatedLines.first?.count else {
-            print("failed to get firstLineColumnCount for provided string")
+            log?("failed to get firstLineColumnCount for provided string")
             return []
         }
         var indicesWithIssue = [LineIssue]()
@@ -165,12 +185,14 @@ public struct CSVErrorRepair {
     ///     The expected column count is derived from `expectedFieldTypes.count`.
     ///   - fileName: The source file name, used for diagnostic output.
     ///   - lineNumber: The line number in the source file, used for diagnostic output.
-    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int) {
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics.
+    public static func repairLinesWithMoreColumnsBasedOnExpectedFields(forLine separatedLine: inout [String], expectedFieldTypes: [FieldType], fileName: String, lineNumber: Int, log: ((String) -> Void)? = nil) {
         let fieldCheck = Self.validate(separatedLine: separatedLine,
                                       againstExpectedFieldTypes: expectedFieldTypes)
 
         do {
-            let lastIndicies = try fieldCheck.mergedLastIndices()
+            let lastIndicies = try fieldCheck.mergedLastIndices(log: log)
             // Prefer the second index as a tiebreaker when multiple merge points
             // have equal error counts; fall back to the first if deduplication
             // reduced the array to a single element.
@@ -202,10 +224,10 @@ public struct CSVErrorRepair {
                         return minErrorResults.first!.mergeIndex
                     }else if minErrorResults.count > 1 {
                         if minErrorResults.contains(where: { $0.mergeIndex == swagBestIndex }) {
-                            print("using swagMergeIndex")
+                            log?("using swagMergeIndex")
                             return swagBestIndex
                         }else{
-                            print("using first minErrorResult as mergeIndex by default")
+                            log?("using first minErrorResult as mergeIndex by default")
                             return minErrorResults.first!.mergeIndex
                         }
                     }else {
@@ -214,17 +236,17 @@ public struct CSVErrorRepair {
                 }()
 
                 if bestMergeIndex == 0 {
-                    print("won't merge because bestMergeIndex == 0")
+                    log?("won't merge because bestMergeIndex == 0")
                 }else {
                     //TODO: is it better to step one cell further forward
                     separatedLine[bestMergeIndex] = separatedLine[bestMergeIndex] + separatedLine[bestMergeIndex+1]
                     separatedLine.remove(at: bestMergeIndex+1)
                 }
             }else{
-                print("failed to get minErrors in \(#function)")
+                log?("failed to get minErrors in \(#function)")
             }
         } catch {
-            print("error repairing line (\(error)) line \(fileName):\(lineNumber): \(separatedLine)")
+            log?("error repairing line (\(error)) line \(fileName):\(lineNumber): \(separatedLine)")
         }
     }
 
@@ -341,7 +363,9 @@ public struct CSVErrorRepair {
     ///   - lines: The full array of parsed lines, modified in-place.
     ///   - firstLineIndex: The index of the first short line to begin merging from.
     ///   - targetColumnCount: The expected number of columns for a complete line.
-    public static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int) {
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics.
+    public static func repairSequentialShortLines(lines: inout [[String]], firstLineIndex: Int, targetColumnCount: Int, log: ((String) -> Void)? = nil) {
         var linesAhead = 0
         repeat {
             linesAhead += 1
@@ -356,17 +380,17 @@ public struct CSVErrorRepair {
                 return
             }
             guard let firstLineLastIndex = firstLineIndices.last else {
-                print("failed to get firstLineLastIndex")
+                log?("failed to get firstLineLastIndex")
                 return
             }
             guard let mergeLineFirstIndex = mergeLineIndices.first else {
-                print("failed to get ahead line firstIndex")
+                log?("failed to get ahead line firstIndex")
                 return
             }
             // we subtract 1 from the end because one column will be merged with another
             guard firstLineIndices.count + mergeLineIndices.count - 1 <= (targetColumnCount+1) else {
                 if firstLineIndices.count + mergeLineIndices.count - 1 < (targetColumnCount*2-1) {
-                    print("combining the merge line would fall into warning range - too long (\(firstLineIndices.count + mergeLineIndices.count - 1) vs. \(targetColumnCount) - firstLine: \(lines[firstLineIndex]) secondLine: \(lines[firstLineIndex + linesAhead])")
+                    log?("combining the merge line would fall into warning range - too long (\(firstLineIndices.count + mergeLineIndices.count - 1) vs. \(targetColumnCount) - firstLine: \(lines[firstLineIndex]) secondLine: \(lines[firstLineIndex + linesAhead])")
                 }
                 return
             }
@@ -385,19 +409,22 @@ public struct CSVErrorRepair {
     /// consecutive short lines. After merging, removes any empty or single-empty-element lines
     /// left behind by the merge process.
     ///
-    /// - Parameter lines: The full array of parsed lines, modified in-place.
-    public static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]]) {
-        let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines)
-        print("lines with errors: \(linesWithErrors.count)")
-        print("lines with errors: \(linesWithErrors)")
+    /// - Parameters:
+    ///   - lines: The full array of parsed lines, modified in-place.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics.
+    public static func findAndRepairLinesWithTooFewElements(_ lines: inout [[String]], log: ((String) -> Void)? = nil) {
+        let linesWithErrors = Self.findLinesWithIncorrectElementCount(fromLines: lines, log: log)
+        log?("lines with errors: \(linesWithErrors.count)")
+        log?("lines with errors: \(linesWithErrors)")
         for (currentIndex, currentElement) in linesWithErrors.enumerated() {
             if currentIndex < linesWithErrors.count - 1 {
                 let nextElement = linesWithErrors[currentIndex + 1]
                 if currentElement.lineIndex + 1 == nextElement.lineIndex {
-                    Self.repairSequentialShortLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.expectedColumnCount)
+                    Self.repairSequentialShortLines(lines: &lines, firstLineIndex: currentElement.lineIndex, targetColumnCount: currentElement.expectedColumnCount, log: log)
                 }
             } else {
-                print("No more elements after current")
+                log?("No more elements after current")
             }
         }
         lines.removeAll { $0.count == 0}
@@ -451,16 +478,18 @@ public struct CSVErrorRepair {
         _ lines: inout [[String]],
         fieldTypeMapping: [String: FieldType],
         fileName: String,
-        fileUrl: URL
+        fileUrl: URL,
+        log: ((String) -> Void)? = nil
     ) throws -> [LineIssue] {
-        let linesWithIssues = findLinesWithIncorrectElementCount(fromLines: lines)
+        let linesWithIssues = findLinesWithIncorrectElementCount(fromLines: lines, log: log)
         guard !linesWithIssues.isEmpty else { return linesWithIssues }
 
         // Step 1: Merge consecutive short lines (rows split by embedded newlines)
         for issueLine in linesWithIssues {
             repairSequentialShortLines(lines: &lines,
                                        firstLineIndex: issueLine.lineIndex,
-                                       targetColumnCount: issueLine.expectedColumnCount)
+                                       targetColumnCount: issueLine.expectedColumnCount,
+                                       log: log)
         }
 
         // Step 2: Remove empty lines and single-empty-element lines left behind by the
@@ -468,7 +497,7 @@ public struct CSVErrorRepair {
         lines.removeAll { $0.isEmpty || ($0.count == 1 && $0.first!.isEmpty) }
 
         // Step 3: Repair lines that have too many columns using field-type validation
-        let linesWithIssuesAfterSequentialLineRepair = findLinesWithIncorrectElementCount(fromLines: lines)
+        let linesWithIssuesAfterSequentialLineRepair = findLinesWithIncorrectElementCount(fromLines: lines, log: log)
         guard let header = lines.first else {
             throw ParseError.emptyFileAfterCleanup(fileUrl)
         }
@@ -483,13 +512,14 @@ public struct CSVErrorRepair {
                 forLine: &lines[issueLine.lineIndex],
                 expectedFieldTypes: orderedFieldTypes,
                 fileName: fileName,
-                lineNumber: issueLine.lineIndex)
+                lineNumber: issueLine.lineIndex,
+                log: log)
         }
 
         // Step 4: Report any lines still incorrect after both repair passes
-        let remainingIssues = findLinesWithIncorrectElementCount(fromLines: lines)
+        let remainingIssues = findLinesWithIncorrectElementCount(fromLines: lines, log: log)
         if !remainingIssues.isEmpty {
-            print("linesWithIssuesAfterLongLineRepair: \(remainingIssues)")
+            log?("linesWithIssuesAfterLongLineRepair: \(remainingIssues)")
         }
         return remainingIssues
     }
@@ -507,10 +537,13 @@ public struct CSVErrorRepair {
     ///   - fileFilter: A closure that returns `true` for files that should be processed.
     ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
     ///     Return `nil` for files that should not have field-type-based repair applied.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics. Must be `@Sendable` because it is
+    ///     invoked from concurrently-processed files.
     /// - Throws: ``ParseError`` if file data cannot be decoded. Consider making this a typed throw
     ///   (`throws(ParseError)`) in a future version, once `fatalError` calls are replaced with thrown errors.
     /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
-    public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
+    public static func correctErrorsIn(directory: URL, fileFilter: (URL) -> Bool, fileToFieldType: @escaping (URL) -> [String : FieldType]?, log: (@Sendable (String) -> Void)? = nil) async throws -> [FileIssues] {
         guard let enumerator = FileManager.default
             .enumerator(at: directory,
                         includingPropertiesForKeys: nil,
@@ -522,7 +555,7 @@ public struct CSVErrorRepair {
         }
         let csvItems = items.filter { $0.lastPathComponent.hasSuffix("csv") }
             .filter { fileFilter($0) }
-        print("csvItems.count: \(csvItems.count)")
+        log?("csvItems.count: \(csvItems.count)")
         let fileErrors = try await csvItems
             .concurrentMap { csvFile -> FileIssues in
                 guard let mappingDict = fileToFieldType(csvFile) else {
@@ -535,7 +568,8 @@ public struct CSVErrorRepair {
                         &lines,
                         fieldTypeMapping: mappingDict,
                         fileName: csvFile.lastPathComponent,
-                        fileUrl: csvFile)
+                        fileUrl: csvFile,
+                        log: log)
                     return FileIssues(fileUrl: csvFile, issues: remainingIssues)
                 }.value
             }
@@ -551,12 +585,15 @@ public struct CSVErrorRepair {
     /// - Parameters:
     ///   - files: An array of `(URL, Data)` tuples representing CSV files.
     ///   - fileToFieldType: A closure mapping a file URL to its column-name-to-``FieldType`` dictionary.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics. Must be `@Sendable` because it is
+    ///     invoked from concurrently-processed files.
     /// - Throws: ``ParseError/failedToGetStringFromData`` if file data cannot be decoded. Consider making
     ///   this a typed throw (`throws(ParseError)`) in a future version.
     /// - Returns: An array of ``FileIssues``, one per file, listing any lines still incorrect after repair.
-    public static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?) async throws -> [FileIssues] {
+    public static func correctErrorsIn(files: [(URL, Data)], fileToFieldType: @escaping (URL) -> [String : FieldType]?, log: (@Sendable (String) -> Void)? = nil) async throws -> [FileIssues] {
         let csvData = files.filter { $0.0.lastPathComponent.hasSuffix("csv") }
-        print("csvItems.count: \(csvData.count)")
+        log?("csvItems.count: \(csvData.count)")
         let fileErrors = try await csvData
             .concurrentMap { csvFile -> FileIssues in
                 guard let mappingDict = fileToFieldType(csvFile.0) else {
@@ -571,7 +608,8 @@ public struct CSVErrorRepair {
                         &lines,
                         fieldTypeMapping: mappingDict,
                         fileName: csvFile.0.lastPathComponent,
-                        fileUrl: csvFile.0)
+                        fileUrl: csvFile.0,
+                        log: log)
                     return FileIssues(fileUrl: csvFile.0, issues: remainingIssues)
                 }.value
             }
@@ -631,17 +669,21 @@ public struct CSVErrorRepair {
     ///   - inputLines: The parsed CSV lines to repair. Not modified — a copy is made internally.
     ///   - url: The source file URL, used for diagnostic output and to populate ``FileIssues/fileUrl``.
     ///   - fieldTypes: A dictionary mapping column header names to their expected ``FieldType``.
+    ///   - log: An optional logging sink. When `nil` (the default) all diagnostic output is
+    ///     suppressed; pass a closure to observe diagnostics. Must be `@Sendable` because it is
+    ///     captured by the internal `Task`.
     /// - Throws: ``ParseError/emptyFileAfterCleanup(_:)`` if all lines are removed during cleanup.
     ///   ``ParseError/unknownFieldName(_:_:)`` if a header column has no entry in the `fieldTypes` dictionary.
     /// - Returns: A tuple of the repaired line arrays and a ``FileIssues`` listing any lines that remain incorrect.
-    public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType]) async throws -> (resultLines: [[String]], issues: FileIssues) {
+    public static func correctErrorsIn(_ inputLines: [[String]], forUrl url: URL, fieldTypes: [String : FieldType], log: (@Sendable (String) -> Void)? = nil) async throws -> (resultLines: [[String]], issues: FileIssues) {
         return try await Task {
             var lines = inputLines
             let remainingIssues = try CSVErrorRepair.repairLines(
                 &lines,
                 fieldTypeMapping: fieldTypes,
                 fileName: url.lastPathComponent,
-                fileUrl: url)
+                fileUrl: url,
+                log: log)
             return (lines, FileIssues(fileUrl: url, issues: remainingIssues))
         }.value
     }
