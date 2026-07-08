@@ -93,10 +93,150 @@ public struct CSVErrorRepair {
     ///   Consider making this a typed throw (`throws(ParseError)`) in a future version.
     /// - Returns: A two-dimensional array where each inner array is one parsed row.
     public static func getLines(fromData data: Data, lineDelimeter: String = "\n", columnDelimeter: String = "\t", encoding: String.Encoding = .isoLatin1) throws -> [[String]] {
+        // Byte-level fast path: for ISO-Latin-1 input with a single-byte column
+        // delimiter, split rows/columns in ONE pass over the raw bytes instead of
+        // decode → 2× replacingOccurrences (two full-string copies) → nested
+        // components(separatedBy:). On a 27 MB / 200k-row FIS results file this is
+        // roughly an order of magnitude faster. Output is exactly identical to the
+        // string path (see GetLinesFastPathEquivalenceTests).
+        //
+        // Restricted to .isoLatin1 deliberately: every byte sequence is valid
+        // Latin-1, so this path cannot fail where the string path would throw.
+        // (.utf8 is NOT eligible: the string path throws on invalid UTF-8, and a
+        // byte-level path would have to either duplicate that validation or
+        // silently substitute U+FFFD — a semantic change.)
+        if encoding == .isoLatin1,
+           columnDelimeter.utf8.count == 1,
+           let delimiterByte = columnDelimeter.utf8.first {
+            return getLinesLatin1(data: data, columnDelimiterByte: delimiterByte)
+        }
         guard let string = String(data: data, encoding: encoding) else {
             throw ParseError.failedToGetStringFromData
         }
         return Self.getLines(fromString: string, lineDelimeter: lineDelimeter, columnDelimeter: columnDelimeter)
+    }
+
+    /// Single-pass byte-level parser for ISO-Latin-1 data with a single-byte column
+    /// delimiter. Produces exactly the same output as decoding the data and calling
+    /// ``getLines(fromString:lineDelimeter:columnDelimeter:)``:
+    ///
+    /// - `\r\n` and lone `\r` each count as one row separator (the string path's
+    ///   CRLF→LF, CR→LF normalization), rows split on `\n`.
+    /// - Columns split on `columnDelimiterByte`.
+    /// - Empty cells and rows are preserved — including the trailing `[""]` row for
+    ///   data ending in a newline, mirroring `components(separatedBy:)`.
+    /// - Cells are decoded as ISO-Latin-1: ASCII-only cells go straight through the
+    ///   UTF-8 initializer; cells with high bytes (accented names) are transcoded
+    ///   Latin-1 → UTF-8 first (each byte ≥ 0x80 becomes a 2-byte UTF-8 sequence).
+    ///
+    /// Implementation note: all byte SCANNING is done with `memchr` (libc — compiled
+    /// optimized regardless of this package's build configuration) via three
+    /// monotonic cursors, one per separator byte. Each cursor holds the position of
+    /// that byte's next occurrence and is re-scanned only after the parse position
+    /// passes it, so every byte is scanned at most once per cursor (3 total passes,
+    /// all inside libc). Swift-side work is per-CELL, not per-byte, which keeps the
+    /// debug (-Onone) build fast too — a naive per-byte Swift loop is ~2× slower
+    /// than the Foundation string path in debug, while this shape beats it in both
+    /// configurations.
+    private static func getLinesLatin1(data: Data, columnDelimiterByte: UInt8) -> [[String]] {
+        let newlineByte: UInt8 = 0x0A
+        let carriageReturnByte: UInt8 = 0x0D
+
+        return data.withUnsafeBytes { (rawBuffer: UnsafeRawBufferPointer) -> [[String]] in
+            let count = rawBuffer.count
+            guard count > 0, let rawBase = rawBuffer.baseAddress else { return [[""]] }
+            let base = rawBase.assumingMemoryBound(to: UInt8.self)
+
+            /// Position of the next `byte` at or after `from`, or `count` if none.
+            /// memchr does the scanning at libc speed in every build config.
+            @inline(__always) func nextOccurrence(of byte: UInt8, from: Int) -> Int {
+                guard from < count else { return count }
+                guard let hit = memchr(rawBase + from, Int32(byte), count - from) else { return count }
+                return UnsafeRawPointer(hit) - rawBase
+            }
+
+            /// Decode `base[start..<end]` as ISO-Latin-1. The high-byte probe is a
+            /// raw-pointer walk (no bounds checks even in debug); cells average only
+            /// a few bytes so this is per-cell constant work.
+            func cell(_ start: Int, _ end: Int) -> String {
+                if start == end { return "" }
+                var pointer = base + start
+                let endPointer = base + end
+                var hasHighByte = false
+                while pointer < endPointer {
+                    if pointer.pointee >= 0x80 {
+                        hasHighByte = true
+                        break
+                    }
+                    pointer += 1
+                }
+                if !hasHighByte {
+                    // ASCII is a subset of UTF-8 — decode the slice directly.
+                    return String(decoding: UnsafeBufferPointer(start: base + start, count: end - start), as: UTF8.self)
+                }
+                // Transcode Latin-1 → UTF-8 (bytes ≥ 0x80 map to U+0080–U+00FF,
+                // i.e. a two-byte UTF-8 sequence), then decode.
+                var utf8Bytes: [UInt8] = []
+                utf8Bytes.reserveCapacity((end - start) * 2)
+                pointer = base + start
+                while pointer < endPointer {
+                    let byte = pointer.pointee
+                    if byte < 0x80 {
+                        utf8Bytes.append(byte)
+                    } else {
+                        utf8Bytes.append(0xC0 | (byte >> 6))
+                        utf8Bytes.append(0x80 | (byte & 0x3F))
+                    }
+                    pointer += 1
+                }
+                return String(decoding: utf8Bytes, as: UTF8.self)
+            }
+
+            var rows: [[String]] = []
+            // Estimate row count from typical FIS row width; over-reserving a bit
+            // beats repeated growth on multi-MB files.
+            rows.reserveCapacity(count / 64 + 1)
+            var row: [String] = []
+            var widestRowSeen = 0
+
+            // Monotonic separator cursors (see doc comment).
+            var nextDelimiter = nextOccurrence(of: columnDelimiterByte, from: 0)
+            var nextNewline = nextOccurrence(of: newlineByte, from: 0)
+            var nextCarriageReturn = nextOccurrence(of: carriageReturnByte, from: 0)
+
+            var position = 0
+            while true {
+                if nextDelimiter < position { nextDelimiter = nextOccurrence(of: columnDelimiterByte, from: position) }
+                if nextNewline < position { nextNewline = nextOccurrence(of: newlineByte, from: position) }
+                if nextCarriageReturn < position { nextCarriageReturn = nextOccurrence(of: carriageReturnByte, from: position) }
+
+                let boundary = min(nextDelimiter, min(nextNewline, nextCarriageReturn))
+                if boundary >= count {
+                    // Final remainder: components(separatedBy:) always yields a last
+                    // component, so data ending in a newline produces a trailing [""]
+                    // row (and empty data produces [[""]]).
+                    row.append(cell(position, count))
+                    rows.append(row)
+                    return rows
+                }
+
+                row.append(cell(position, boundary))
+                if boundary == nextDelimiter {
+                    position = boundary + 1
+                } else {
+                    // Row separator: \n, or \r (consuming a following \n — CRLF is
+                    // one separator, matching the string path's CRLF→LF collapse).
+                    rows.append(row)
+                    widestRowSeen = max(widestRowSeen, row.count)
+                    row = []
+                    row.reserveCapacity(widestRowSeen)
+                    position = boundary + 1
+                    if boundary == nextCarriageReturn && position < count && (base + position).pointee == newlineByte {
+                        position += 1
+                    }
+                }
+            }
+        }
     }
 
     /// Converts a two-dimensional line array back into a single CSV string.
